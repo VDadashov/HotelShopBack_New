@@ -5,22 +5,16 @@ import { Category } from './category.entity';
 @Entity('products')
 export class Product extends BaseEntity {
   @Column({ type: 'jsonb' })
-  title: { az: string; en?: string; ru?: string };
-
-  @Column({ unique: true })
-  slug: string;
+  name: { az: string; en?: string; ru?: string };
 
   @Column({ type: 'jsonb', nullable: true })
   description: { az: string; en?: string; ru?: string };
 
-  @Column({ nullable: true })
-  mainImage: string;
-
-  @Column({ type: 'text', array: true, nullable: true })
-  imageList: string[];
+  @Column({ type: 'integer', default: 0 })
+  views: number;
 
   @Column({ nullable: true })
-  detailPdf: string;
+  mainImg: string;
 
   @ManyToOne(() => Category, (category) => category.products, { nullable: false })
   category: Category;

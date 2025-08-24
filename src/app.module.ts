@@ -12,6 +12,11 @@ import { AppService } from './app.service';
 import { PageModule } from './page/page.module';
 import { SectionModule } from './section/section.module';
 import { BrandModule } from './brand/brand.module';
+import { FaqModule } from './faq/faq.module';
+import { ProductModule } from './product/product.module';
+import { PromoModule } from './promo/promo.module';
+import { TestimonialModule } from './testimonial/testimonial.module';
+import { CartModule } from './cart/cart.module';
 
 @Module({
   imports: [
@@ -26,6 +31,11 @@ import { BrandModule } from './brand/brand.module';
     PageModule,
     SectionModule,
     BrandModule,
+    FaqModule,
+    ProductModule,
+    PromoModule,
+    TestimonialModule,
+    CartModule,
   ],
   controllers: [AppController],
   providers: [AppService],
