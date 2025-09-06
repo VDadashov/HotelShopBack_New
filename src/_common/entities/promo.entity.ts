@@ -1,6 +1,6 @@
 import { Entity, Column, ManyToOne } from 'typeorm';
-import { BaseEntity } from './_base/base.entity';
 import { Product } from './product.entity';
+import { BaseEntity } from './_base/base.entity';
 
 @Entity('promos')
 export class Promo extends BaseEntity {
@@ -19,7 +19,7 @@ export class Promo extends BaseEntity {
   @Column({ type: 'timestamp' })
   endDate: Date;
 
-  @Column({ nullable: true })
+  @Column({ type: 'jsonb', nullable: true })
   backgroundImg: string | null;
 
   @ManyToOne(() => Product, { nullable: false })

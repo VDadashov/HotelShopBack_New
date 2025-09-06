@@ -3,12 +3,16 @@ import {
   Get,
   Post,
   Body,
-  Patch,
+  Put,
   Param,
   Delete,
   Query,
-  UseGuards,
   ParseIntPipe,
+  HttpStatus,
+  HttpCode,
+  UseGuards,
+  ValidationPipe,
+  Headers,
   UseInterceptors,
   UploadedFile,
 } from '@nestjs/common';
@@ -17,16 +21,17 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiBearerAuth,
   ApiParam,
   ApiQuery,
-  ApiConsumes,
+  ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
 } from '@nestjs/swagger';
 import { TestimonialService } from './testimonial.service';
 import { CreateTestimonialDto } from './dto/create-testimonial.dto';
 import { UpdateTestimonialDto } from './dto/update-testimonial.dto';
 import { TestimonialQueryDto } from './dto/testimonial-query.dto';
+import { Testimonial } from '../_common/entities/testimonial.entity';
 import { JwtAuthGuard } from '../_common/guards/jwt-auth.guard';
 import { RolesGuard } from '../_common/guards/roles.guard';
 import { Roles } from '../_common/decorators/roles.decorator';
@@ -36,18 +41,54 @@ import { Roles } from '../_common/decorators/roles.decorator';
 export class TestimonialController {
   constructor(private readonly testimonialService: TestimonialService) {}
 
-  @Get()
-  @ApiOperation({ summary: 'Bütün testimonialları gətir (axtarış və filter ilə)' })
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Yeni testimonial yaratmaq',
+  })
+  @ApiBody({ type: CreateTestimonialDto })
   @ApiResponse({
-    status: 200,
-    description: 'Testimonial siyahısı',
+    status: 201,
+    description: 'Testimonial uğurla yaradıldı',
+    type: Testimonial,
   })
-  @ApiQuery({
-    name: 'isActive',
-    required: false,
-    type: Boolean,
-    description: 'Aktiv testimonialları filterlə',
+  @ApiResponse({
+    status: 400,
+    description: 'Yanlış məlumatlar və ya validasiya xətası',
   })
+  @ApiResponse({
+    status: 401,
+    description: 'İcazə yoxdur',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async create(
+    @Body(ValidationPipe) createTestimonialDto: CreateTestimonialDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ): Promise<{ success: boolean; data: Testimonial; message: string }> {
+    if (file) {
+      createTestimonialDto.imageUrl = `/uploads/testimonials/${file.filename}`;
+    }
+    const testimonial =
+      await this.testimonialService.create(createTestimonialDto);
+    return {
+      success: true,
+      data: testimonial,
+      message: 'Testimonial uğurla yaradıldı',
+    };
+  }
+
+  @Get()
+  @ApiOperation({
+    summary: 'Bütün testimonialları əldə etmək',
+    description:
+      'Filtrlər və sıralama ilə testimonialların siyahısını qaytarır',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'isActive', required: false, type: Boolean })
   @ApiQuery({
     name: 'search',
     required: false,
@@ -66,144 +107,208 @@ export class TestimonialController {
     enum: ['newest', 'oldest', 'name-az', 'name-za'],
     description: 'Sıralama növü',
   })
-  async findAll(@Query() query: TestimonialQueryDto) {
-    return await this.testimonialService.findAll(query);
+  @ApiQuery({
+    name: 'allLanguages',
+    required: false,
+    type: Boolean,
+    description: 'Admin üçün bütün dillər',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Testimonialların siyahısı uğurla qaytarıldı',
+  })
+  async findAll(
+    @Query(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        skipMissingProperties: true,
+        forbidUnknownValues: false,
+      }),
+    )
+    queryDto: TestimonialQueryDto,
+    @Query('allLanguages') allLanguages?: boolean,
+    @Headers('accept-language') acceptLanguage?: string,
+  ) {
+    if (allLanguages) {
+      const result = await this.testimonialService.findAllForAdmin(queryDto);
+      return {
+        success: true,
+        data: result.data,
+        pagination: {
+          total: result.total,
+          page: result.page,
+          limit: result.limit,
+          totalPages: Math.ceil(result.total / result.limit),
+        },
+        message: 'Testimoniallar uğurla əldə edildi',
+      };
+    }
+
+    const result = await this.testimonialService.findAll(
+      queryDto,
+      acceptLanguage,
+    );
+    return {
+      success: true,
+      data: result.data,
+      pagination: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: Math.ceil(result.total / result.limit),
+      },
+      message: 'Testimoniallar uğurla əldə edildi',
+    };
+  }
+
+  @Get('all')
+  @ApiOperation({
+    summary: 'Bütün testimonialları əldə etmək (filtrsiz)',
+    description: 'Filtrsiz bütün testimonialların siyahısını qaytarır',
+  })
+  @ApiQuery({
+    name: 'allLanguages',
+    required: false,
+    type: Boolean,
+    description: 'Admin üçün bütün dillər',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bütün testimoniallar uğurla qaytarıldı',
+  })
+  async getAll(
+    @Query('allLanguages') allLanguages?: boolean,
+    @Headers('accept-language') acceptLanguage?: string,
+  ) {
+    if (allLanguages) {
+      const testimonials = await this.testimonialService.getAllForAdmin();
+      return {
+        success: true,
+        data: testimonials,
+        message: 'Bütün testimoniallar uğurla əldə edildi',
+      };
+    }
+
+    const testimonials = await this.testimonialService.getAll(acceptLanguage);
+    return {
+      success: true,
+      data: testimonials,
+      message: 'Bütün testimoniallar uğurla əldə edildi',
+    };
   }
 
   @Get('active')
-  @ApiOperation({ summary: 'Aktiv testimonialları gətir' })
+  @ApiOperation({
+    summary: 'Aktiv testimonialları əldə etmək',
+    description: 'Yalnız aktiv testimonialları qaytarır',
+  })
+  @ApiQuery({
+    name: 'allLanguages',
+    required: false,
+    type: Boolean,
+    description: 'Admin üçün bütün dillər',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Aktiv testimonial siyahısı',
+    description: 'Aktiv testimoniallar uğurla qaytarıldı',
   })
-  async getActiveTestimonials() {
-    return await this.testimonialService.getActiveTestimonials();
+  async getActiveTestimonials(
+    @Query('allLanguages') allLanguages?: boolean,
+    @Headers('accept-language') acceptLanguage?: string,
+  ) {
+    if (allLanguages) {
+      const testimonials =
+        await this.testimonialService.getActiveTestimonialsForAdmin();
+      return {
+        success: true,
+        data: testimonials,
+        message: 'Aktiv testimoniallar uğurla əldə edildi',
+      };
+    }
+
+    const testimonials =
+      await this.testimonialService.getActiveTestimonials(acceptLanguage);
+    return {
+      success: true,
+      data: testimonials,
+      message: 'Aktiv testimoniallar uğurla əldə edildi',
+    };
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'ID ilə testimonial gətir' })
+  @ApiOperation({
+    summary: 'ID-yə görə testimonial tapmaq',
+    description: 'Müəyyən ID-li testimonialı qaytarır',
+  })
   @ApiParam({
     name: 'id',
     type: 'number',
-    description: 'Testimonial ID-si',
+    description: 'Testimonialın ID-si',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'allLanguages',
+    required: false,
+    type: Boolean,
+    description: 'Admin üçün bütün dillər',
   })
   @ApiResponse({
     status: 200,
-    description: 'Testimonial obyekti',
+    description: 'Testimonial uğurla tapıldı',
+    type: Testimonial,
   })
   @ApiResponse({
     status: 404,
     description: 'Testimonial tapılmadı',
   })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return await this.testimonialService.findOne(id);
-  }
-
-  @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
-  @UseInterceptors(FileInterceptor('image'))
-  @ApiBearerAuth()
-  @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Yeni testimonial yarat' })
-  @ApiBody({
-    description: 'Testimonial məlumatları',
-    schema: {
-      type: 'object',
-      properties: {
-        name: {
-          type: 'object',
-          properties: {
-            az: { type: 'string', example: 'Əli Məmmədov' },
-            en: { type: 'string', example: 'Ali Mammadov' },
-            ru: { type: 'string', example: 'Али Мамедов' },
-          },
-        },
-        message: {
-          type: 'object',
-          properties: {
-            az: { type: 'string', example: 'Bu xidmət çox yaxşıdır...' },
-            en: { type: 'string', example: 'This service is very good...' },
-            ru: { type: 'string', example: 'Эта услуга очень хорошая...' },
-          },
-        },
-        isActive: { type: 'boolean', example: true },
-        image: {
-          type: 'string',
-          format: 'binary',
-          description: 'Müştəri şəkli',
-        },
-      },
-      required: ['name', 'message'],
-    },
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'Testimonial uğurla yaradıldı',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Validasiya xətası',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Qeyri-təsdiq edilmiş istifadəçi',
-  })
-  async create(
-    @Body() createTestimonialDto: CreateTestimonialDto,
-    @UploadedFile() file?: Express.Multer.File,
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('allLanguages') allLanguages?: boolean,
+    @Headers('accept-language') acceptLanguage?: string,
   ) {
-    if (file) {
-      createTestimonialDto.imageUrl = `/uploads/images/${file.filename}`;
+    if (allLanguages) {
+      const testimonial = await this.testimonialService.findOneForAdmin(id);
+      return {
+        success: true,
+        data: testimonial,
+        message: 'Testimonial uğurla tapıldı',
+      };
     }
-    return await this.testimonialService.create(createTestimonialDto);
+
+    const testimonial = await this.testimonialService.findOne(
+      id,
+      acceptLanguage,
+    );
+    return {
+      success: true,
+      data: testimonial,
+      message: 'Testimonial uğurla tapıldı',
+    };
   }
 
-  @Patch(':id')
+  @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  @UseInterceptors(FileInterceptor('image'))
   @ApiBearerAuth()
-  @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Testimonial yenilə' })
+  @ApiOperation({
+    summary: 'Testimonialı yeniləmək',
+  })
   @ApiParam({
     name: 'id',
     type: 'number',
-    description: 'Testimonial ID-si',
+    description: 'Yenilənəcək testimonialın ID-si',
+    example: 1,
   })
-  @ApiBody({
-    description: 'Yenilənəcək testimonial məlumatları',
-    schema: {
-      type: 'object',
-      properties: {
-        name: {
-          type: 'object',
-          properties: {
-            az: { type: 'string' },
-            en: { type: 'string' },
-            ru: { type: 'string' },
-          },
-        },
-        message: {
-          type: 'object',
-          properties: {
-            az: { type: 'string' },
-            en: { type: 'string' },
-            ru: { type: 'string' },
-          },
-        },
-        isActive: { type: 'boolean' },
-        image: {
-          type: 'string',
-          format: 'binary',
-          description: 'Yeni müştəri şəkli',
-        },
-      },
-    },
-  })
+  @ApiBody({ type: UpdateTestimonialDto })
   @ApiResponse({
     status: 200,
     description: 'Testimonial uğurla yeniləndi',
+    type: Testimonial,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Yanlış məlumatlar və ya validasiya xətası',
   })
   @ApiResponse({
     status: 404,
@@ -211,28 +316,37 @@ export class TestimonialController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Qeyri-təsdiq edilmiş istifadəçi',
+    description: 'İcazə yoxdur',
   })
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateTestimonialDto: UpdateTestimonialDto,
-    @UploadedFile() file?: Express.Multer.File,
-  ) {
-    if (file) {
-      updateTestimonialDto.imageUrl = `/uploads/images/${file.filename}`;
-    }
-    return await this.testimonialService.update(id, updateTestimonialDto);
+    @Body(ValidationPipe) updateTestimonialDto: UpdateTestimonialDto,
+  ): Promise<{ success: boolean; data: Testimonial; message: string }> {
+    const testimonial = await this.testimonialService.update(
+      id,
+      updateTestimonialDto,
+    );
+
+    return {
+      success: true,
+      data: testimonial,
+      message: 'Testimonial uğurla yeniləndi',
+    };
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Testimonial sil' })
+  @ApiOperation({
+    summary: 'Testimonialı silmək',
+    description: 'Yalnız admin tərəfindən testimonial silinə bilər.',
+  })
   @ApiParam({
     name: 'id',
     type: 'number',
-    description: 'Testimonial ID-si',
+    description: 'Silinəcək testimonialın ID-si',
+    example: 1,
   })
   @ApiResponse({
     status: 200,
@@ -244,9 +358,16 @@ export class TestimonialController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Qeyri-təsdiq edilmiş istifadəçi',
+    description: 'İcazə yoxdur',
   })
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    return await this.testimonialService.remove(id);
+  @HttpCode(HttpStatus.OK)
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<{ success: boolean; message: string }> {
+    await this.testimonialService.remove(id);
+    return {
+      success: true,
+      message: 'Testimonial uğurla silindi',
+    };
   }
 }

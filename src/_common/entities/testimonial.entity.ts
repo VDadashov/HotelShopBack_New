@@ -1,3 +1,4 @@
+// testimonial.entity.ts - FIXED
 import { Entity, Column } from 'typeorm';
 import { BaseEntity } from './_base/base.entity';
 
@@ -9,7 +10,7 @@ export class Testimonial extends BaseEntity {
   @Column({ type: 'jsonb' })
   message: { az: string; en?: string; ru?: string };
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   imageUrl: string | null;
 
   @Column({ default: true })

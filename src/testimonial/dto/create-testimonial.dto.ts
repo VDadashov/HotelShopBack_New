@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsBoolean, IsOptional, IsObject, ValidateNested, IsNotEmpty, MinLength } from 'class-validator';
+import {
+  IsString,
+  IsBoolean,
+  IsOptional,
+  IsObject,
+  ValidateNested,
+  IsNotEmpty,
+  MinLength,
+} from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
 class MultilingualTextDto {
@@ -9,26 +17,26 @@ class MultilingualTextDto {
   })
   @IsString()
   @IsNotEmpty()
-  @MinLength(2, { message: 'Mətn ən azı 2 simvol olmalıdır' })
+  @MinLength(2)
   az: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'İngilis dilində mətn',
     example: 'Ali Mammadov',
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @MinLength(2, { message: 'Mətn ən azı 2 simvol olmalıdır' })
-  en: string;
+  @MinLength(2)
+  en?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Rus dilində mətn',
     example: 'Али Мамедов',
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @MinLength(2, { message: 'Mətn ən azı 2 simvol olmalıdır' })
-  ru: string;
+  @MinLength(2)
+  ru?: string;
 }
 
 class MessageMultilingualTextDto {
@@ -38,26 +46,26 @@ class MessageMultilingualTextDto {
   })
   @IsString()
   @IsNotEmpty()
-  @MinLength(5, { message: 'Mesaj ən azı 5 simvol olmalıdır' })
+  @MinLength(5)
   az: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'İngilis dilində mətn',
     example: 'This service is very good...',
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @MinLength(5, { message: 'Mesaj ən azı 5 simvol olmalıdır' })
-  en: string;
+  @MinLength(5)
+  en?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Rus dilində mətn',
     example: 'Эта услуга очень хорошая...',
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @MinLength(5, { message: 'Mesaj ən azı 5 simvol olmalıdır' })
-  ru: string;
+  @MinLength(5)
+  ru?: string;
 }
 
 export class CreateTestimonialDto {
@@ -67,12 +75,12 @@ export class CreateTestimonialDto {
     example: {
       az: 'Əli Məmmədov',
       en: 'Ali Mammadov',
-      ru: 'Али Мамедов'
-    }
+      ru: 'Али Мамедов',
+    },
   })
-  @IsObject()
-  @ValidateNested()
+  @ValidateNested() // Bu sequence vacibdir!
   @Type(() => MultilingualTextDto)
+  @IsObject()
   name: MultilingualTextDto;
 
   @ApiProperty({
@@ -81,12 +89,12 @@ export class CreateTestimonialDto {
     example: {
       az: 'Bu xidmət çox yaxşıdır və həmişə keyfiyyətlidir...',
       en: 'This service is very good and always of high quality...',
-      ru: 'Эта услуга очень хорошая и всегда качественная...'
-    }
+      ru: 'Эта услуга очень хорошая и всегда качественная...',
+    },
   })
-  @IsObject()
-  @ValidateNested()
+  @ValidateNested() // Bu sequence vacibdir!
   @Type(() => MessageMultilingualTextDto)
+  @IsObject()
   message: MessageMultilingualTextDto;
 
   @ApiPropertyOptional({
@@ -103,10 +111,10 @@ export class CreateTestimonialDto {
     default: true,
   })
   @IsOptional()
-  @IsBoolean({ message: 'isActive boolean olmalıdır' })
+  @IsBoolean()
   @Transform(({ value }) => {
     if (typeof value === 'string') {
-      return value === 'true';
+      return value.toLowerCase() === 'true';
     }
     return value;
   })

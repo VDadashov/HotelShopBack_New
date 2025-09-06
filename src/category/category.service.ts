@@ -110,7 +110,7 @@ export class CategoryService {
     });
   }
 
-  // CategoryService - lang dəstəyi ilə
+  // CategoryService - düzəldilmiş search implementasiyası
   async findAll(
     queryDto: CategoryQueryDto = {},
     lang?: string,
@@ -154,11 +154,17 @@ export class CategoryService {
       queryBuilder.andWhere('category.level = :level', { level });
     }
 
-    // Axtarış (JSON sahəsində axtarış)
-    if (search) {
+    // PostgreSQL JSONB axtarışı
+    if (search && search.trim() !== '') {
+      const searchTerm = `%${search.trim().toLowerCase()}%`;
+
       queryBuilder.andWhere(
-        '(category.name->>"$.az" LIKE :search OR category.name->>"$.en" LIKE :search OR category.name->>"$.ru" LIKE :search)',
-        { search: `%${search}%` },
+        `(
+        LOWER(category.name->>'az') LIKE LOWER(:search) OR 
+        LOWER(category.name->>'en') LIKE LOWER(:search) OR 
+        LOWER(category.name->>'ru') LIKE LOWER(:search)
+      )`,
+        { search: searchTerm },
       );
     }
 
@@ -168,6 +174,10 @@ export class CategoryService {
       .addOrderBy('category.id', 'ASC')
       .skip(skip)
       .take(limit);
+
+    // Debug üçün query-ni console-da göstər
+    console.log('Generated SQL:', queryBuilder.getSql());
+    console.log('Search term:', search);
 
     const [data, total] = await queryBuilder.getManyAndCount();
 

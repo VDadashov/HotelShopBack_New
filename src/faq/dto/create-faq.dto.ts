@@ -1,5 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsBoolean, IsOptional, MinLength, IsObject, ValidateNested, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsBoolean,
+  IsOptional,
+  MinLength,
+  IsObject,
+  ValidateNested,
+  IsNotEmpty,
+  IsNumber,
+} from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
 class MultilingualTextDto {
@@ -38,8 +47,8 @@ export class CreateFaqDto {
     example: {
       az: 'Sifarişi necə verə bilərəm?',
       en: 'How can I place an order?',
-      ru: 'Как я могу сделать заказ?'
-    }
+      ru: 'Как я могу сделать заказ?',
+    },
   })
   @IsObject()
   @ValidateNested()
@@ -52,8 +61,8 @@ export class CreateFaqDto {
     example: {
       az: 'Sifariş vermək üçün sayta daxil olub məhsulu seçməlisiniz...',
       en: 'To place an order, you need to log in to the site and select the product...',
-      ru: 'Чтобы сделать заказ, вам нужно войти на сайт и выбрать товар...'
-    }
+      ru: 'Чтобы сделать заказ, вам нужно войти на сайт и выбрать товар...',
+    },
   })
   @IsObject()
   @ValidateNested()

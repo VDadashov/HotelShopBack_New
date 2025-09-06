@@ -1,55 +1,119 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, FindManyOptions } from 'typeorm';
 import { Testimonial } from '../_common/entities/testimonial.entity';
 import { CreateTestimonialDto } from './dto/create-testimonial.dto';
 import { UpdateTestimonialDto } from './dto/update-testimonial.dto';
 import { TestimonialQueryDto } from './dto/testimonial-query.dto';
+import { I18nService } from '../i18n/i18n.service';
 
 @Injectable()
 export class TestimonialService {
   constructor(
     @InjectRepository(Testimonial)
     private readonly testimonialRepository: Repository<Testimonial>,
+    private readonly i18n: I18nService,
   ) {}
 
-  async findAll(query: TestimonialQueryDto): Promise<Testimonial[]> {
-    const queryBuilder = this.testimonialRepository.createQueryBuilder('testimonial');
+  // Yeni testimonial yaratmaq
+  async create(
+    createTestimonialDto: CreateTestimonialDto,
+  ): Promise<Testimonial> {
+    const testimonial = this.testimonialRepository.create({
+      name: createTestimonialDto.name,
+      message: createTestimonialDto.message,
+      imageUrl: createTestimonialDto.imageUrl,
+      isActive: createTestimonialDto.isActive ?? true,
+    });
 
-    // Aktiv status filtri
-    if (query.isActive !== undefined) {
-      queryBuilder.andWhere('testimonial.isActive = :isActive', { 
-        isActive: query.isActive 
-      });
+    return await this.testimonialRepository.save(testimonial);
+  }
+
+  // Bütün testimonialları əldə etmək (filtrsiz) - lang dəstəyi ilə
+  async getAll(lang?: string): Promise<any[]> {
+    lang = lang || 'az';
+    const testimonials = await this.testimonialRepository.find({
+      order: {
+        id: 'DESC',
+      },
+    });
+
+    return testimonials.map((testimonial) => ({
+      ...testimonial,
+      name: this.i18n.translateField(testimonial.name, lang),
+      message: this.i18n.translateField(testimonial.message, lang),
+    }));
+  }
+
+  // Admin üçün bütün testimonialları əldə etmək (tərcüməsiz)
+  async getAllForAdmin(): Promise<Testimonial[]> {
+    return await this.testimonialRepository.find({
+      order: {
+        id: 'DESC',
+      },
+    });
+  }
+
+  // Filtrlər və paginasiya ilə testimonialları əldə etmək - lang dəstəyi ilə
+  async findAll(
+    queryDto: TestimonialQueryDto = {},
+    lang?: string,
+  ): Promise<{
+    data: any[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    lang = lang || 'az';
+    const {
+      page = 1,
+      limit = 10,
+      isActive,
+      search,
+      sort = 'newest',
+    } = queryDto;
+
+    const skip = (page - 1) * limit;
+
+    const queryBuilder =
+      this.testimonialRepository.createQueryBuilder('testimonial');
+
+    // Filtrlər
+    if (isActive !== undefined) {
+      queryBuilder.andWhere('testimonial.isActive = :isActive', { isActive });
     }
 
-    // Multilingual axtarış
-    if (query.search) {
-      if (query.lang) {
+    // PostgreSQL JSONB axtarışı
+    if (search && search.trim() !== '') {
+      const searchTerm = `%${search.trim().toLowerCase()}%`;
+
+      if (queryDto.lang) {
         // Müəyyən dildə axtarış
         queryBuilder.andWhere(
-          `(testimonial.name ->> :lang ILIKE :search OR testimonial.message ->> :lang ILIKE :search)`,
-          { 
-            lang: query.lang, 
-            search: `%${query.search}%` 
-          }
+          `(
+            LOWER(testimonial.name->>'${queryDto.lang}') LIKE LOWER(:search) OR 
+            LOWER(testimonial.message->>'${queryDto.lang}') LIKE LOWER(:search)
+          )`,
+          { search: searchTerm },
         );
       } else {
         // Bütün dillərdə axtarış
         queryBuilder.andWhere(
-          `(testimonial.name ->> 'az' ILIKE :search OR 
-            testimonial.name ->> 'en' ILIKE :search OR 
-            testimonial.name ->> 'ru' ILIKE :search OR
-            testimonial.message ->> 'az' ILIKE :search OR 
-            testimonial.message ->> 'en' ILIKE :search OR 
-            testimonial.message ->> 'ru' ILIKE :search)`,
-          { search: `%${query.search}%` }
+          `(
+            LOWER(testimonial.name->>'az') LIKE LOWER(:search) OR 
+            LOWER(testimonial.name->>'en') LIKE LOWER(:search) OR 
+            LOWER(testimonial.name->>'ru') LIKE LOWER(:search) OR
+            LOWER(testimonial.message->>'az') LIKE LOWER(:search) OR 
+            LOWER(testimonial.message->>'en') LIKE LOWER(:search) OR 
+            LOWER(testimonial.message->>'ru') LIKE LOWER(:search)
+          )`,
+          { search: searchTerm },
         );
       }
     }
 
     // Sıralama
-    switch (query.sort) {
+    switch (sort) {
       case 'newest':
         queryBuilder.orderBy('testimonial.createdAt', 'DESC');
         break;
@@ -57,50 +121,178 @@ export class TestimonialService {
         queryBuilder.orderBy('testimonial.createdAt', 'ASC');
         break;
       case 'name-az':
-        queryBuilder.orderBy("testimonial.name ->> 'az'", 'ASC');
+        queryBuilder.orderBy("testimonial.name->>'az'", 'ASC');
         break;
       case 'name-za':
-        queryBuilder.orderBy("testimonial.name ->> 'az'", 'DESC');
+        queryBuilder.orderBy("testimonial.name->>'az'", 'DESC');
         break;
       default:
         queryBuilder.orderBy('testimonial.id', 'DESC');
     }
 
-    return await queryBuilder.getMany();
+    // Paginasiya
+    queryBuilder.skip(skip).take(limit);
+
+    // Debug üçün query-ni console-da göstər
+    console.log('Generated SQL:', queryBuilder.getSql());
+    console.log('Search term:', search);
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    // Tərcümə et
+    const translatedData = data.map((testimonial) => ({
+      ...testimonial,
+      name: this.i18n.translateField(testimonial.name, lang),
+      message: this.i18n.translateField(testimonial.message, lang),
+    }));
+
+    return {
+      data: translatedData,
+      total,
+      page,
+      limit,
+    };
   }
 
-  async findOne(id: number): Promise<Testimonial> {
-    const testimonial = await this.testimonialRepository.findOne({ 
-      where: { id } 
+  // Admin üçün findAll (tərcüməsiz)
+  async findAllForAdmin(queryDto: TestimonialQueryDto = {}): Promise<{
+    data: Testimonial[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const {
+      page = 1,
+      limit = 10,
+      isActive,
+      search,
+      sort = 'newest',
+    } = queryDto;
+
+    const skip = (page - 1) * limit;
+
+    const queryBuilder =
+      this.testimonialRepository.createQueryBuilder('testimonial');
+
+    // Filtrlər
+    if (isActive !== undefined) {
+      queryBuilder.andWhere('testimonial.isActive = :isActive', { isActive });
+    }
+
+    // Axtarış (JSON sahəsində axtarış)
+    if (search) {
+      if (queryDto.lang) {
+        queryBuilder.andWhere(
+          '(testimonial.name->>"$.' +
+            queryDto.lang +
+            '" LIKE :search OR testimonial.message->>"$.' +
+            queryDto.lang +
+            '" LIKE :search)',
+          { search: `%${search}%` },
+        );
+      } else {
+        queryBuilder.andWhere(
+          '(testimonial.name->>"$.az" LIKE :search OR testimonial.name->>"$.en" LIKE :search OR testimonial.name->>"$.ru" LIKE :search OR testimonial.message->>"$.az" LIKE :search OR testimonial.message->>"$.en" LIKE :search OR testimonial.message->>"$.ru" LIKE :search)',
+          { search: `%${search}%` },
+        );
+      }
+    }
+
+    // Sıralama
+    switch (sort) {
+      case 'newest':
+        queryBuilder.orderBy('testimonial.createdAt', 'DESC');
+        break;
+      case 'oldest':
+        queryBuilder.orderBy('testimonial.createdAt', 'ASC');
+        break;
+      case 'name-az':
+        queryBuilder.orderBy("testimonial.name->>'az'", 'ASC');
+        break;
+      case 'name-za':
+        queryBuilder.orderBy("testimonial.name->>'az'", 'DESC');
+        break;
+      default:
+        queryBuilder.orderBy('testimonial.id', 'DESC');
+    }
+
+    // Paginasiya
+    queryBuilder.skip(skip).take(limit);
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async findOne(id: number, lang?: string): Promise<any> {
+    lang = lang || 'az';
+    const testimonial = await this.testimonialRepository.findOne({
+      where: { id },
     });
 
     if (!testimonial) {
-      throw new NotFoundException('Testimonial tapılmadı');
+      throw new NotFoundException(`ID ${id} olan testimonial tapılmadı`);
+    }
+
+    return {
+      ...testimonial,
+      name: this.i18n.translateField(testimonial.name, lang),
+      message: this.i18n.translateField(testimonial.message, lang),
+    };
+  }
+
+  // Admin üçün findOne (tərcüməsiz)
+  async findOneForAdmin(id: number): Promise<Testimonial> {
+    const testimonial = await this.testimonialRepository.findOne({
+      where: { id },
+    });
+
+    if (!testimonial) {
+      throw new NotFoundException(`ID ${id} olan testimonial tapılmadı`);
     }
 
     return testimonial;
   }
 
-  async create(createTestimonialDto: CreateTestimonialDto): Promise<Testimonial> {
-    const testimonial = this.testimonialRepository.create(createTestimonialDto);
-    return await this.testimonialRepository.save(testimonial);
-  }
+  // Testimonialı yeniləmək
+  async update(
+    id: number,
+    updateTestimonialDto: UpdateTestimonialDto,
+  ): Promise<Testimonial> {
+    const testimonial = await this.findOneForAdmin(id);
 
-  async update(id: number, updateTestimonialDto: UpdateTestimonialDto): Promise<Testimonial> {
-    const testimonial = await this.findOne(id);
-    
     Object.assign(testimonial, updateTestimonialDto);
     return await this.testimonialRepository.save(testimonial);
   }
 
-  async remove(id: number): Promise<{ message: string }> {
-    const testimonial = await this.findOne(id);
-    
+  // Testimonialı silmək
+  async remove(id: number): Promise<void> {
+    const testimonial = await this.findOneForAdmin(id);
     await this.testimonialRepository.remove(testimonial);
-    return { message: 'Testimonial uğurla silindi' };
   }
 
-  async getActiveTestimonials(): Promise<Testimonial[]> {
+  // Aktiv testimonialları əldə etmək - lang dəstəyi ilə
+  async getActiveTestimonials(lang?: string): Promise<any[]> {
+    lang = lang || 'az';
+    const testimonials = await this.testimonialRepository.find({
+      where: { isActive: true },
+      order: { id: 'DESC' },
+    });
+
+    return testimonials.map((testimonial) => ({
+      ...testimonial,
+      name: this.i18n.translateField(testimonial.name, lang),
+      message: this.i18n.translateField(testimonial.message, lang),
+    }));
+  }
+
+  // Admin üçün aktiv testimoniallar (tərcüməsiz)
+  async getActiveTestimonialsForAdmin(): Promise<Testimonial[]> {
     return await this.testimonialRepository.find({
       where: { isActive: true },
       order: { id: 'DESC' },

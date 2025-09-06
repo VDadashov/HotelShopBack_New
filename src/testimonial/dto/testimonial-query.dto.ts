@@ -1,6 +1,13 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsBoolean, IsString, IsIn } from 'class-validator';
-import { Transform } from 'class-transformer';
+import {
+  IsOptional,
+  IsBoolean,
+  IsString,
+  IsIn,
+  IsNumber,
+  Min,
+} from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 
 export class TestimonialQueryDto {
   @ApiPropertyOptional({
@@ -44,4 +51,26 @@ export class TestimonialQueryDto {
   @IsString()
   @IsIn(['newest', 'oldest', 'name-az', 'name-za'])
   sort?: 'newest' | 'oldest' | 'name-az' | 'name-za';
+
+  @ApiPropertyOptional({
+    description: 'Səhifə nömrəsi (1-dən başlayır)',
+    example: 1,
+    minimum: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  page?: number = 1;
+
+  @ApiPropertyOptional({
+    description: 'Səhifə başına elementlərin sayı',
+    example: 10,
+    minimum: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  limit?: number = 10;
 }
