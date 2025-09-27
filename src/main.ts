@@ -19,10 +19,9 @@ async function bootstrap() {
   // CORS konfiqurasiyası
   app.enableCors({
     origin: [
-      'https://lighthearted-semifreddo-f48916.netlify.app',
       'http://localhost:5173',
       'http://localhost:5174',
-      'https://gstone-admin.netlify.app',
+      'https://admin.hotelshop.az',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: [
@@ -32,7 +31,8 @@ async function bootstrap() {
       'Accept-Language',
       'Accept-Encoding',
       'Origin',
-      'X-Requested-With',    ],
+      'X-Requested-With',
+    ],
     credentials: true,
   });
 
