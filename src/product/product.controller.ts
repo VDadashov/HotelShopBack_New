@@ -114,7 +114,6 @@ export class ProductController {
   @Roles('admin')
   @UseInterceptors(FileInterceptor('mainImg'))
   @ApiBearerAuth()
-  @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Yeni məhsul yarat' })
   @ApiBody({
     description: 'Məhsul məlumatları',

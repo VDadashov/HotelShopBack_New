@@ -52,8 +52,8 @@ async function bootstrap() {
 
   // Swagger konfiqurasiyası
   const config = new DocumentBuilder()
-    .setTitle('GStone API')
-    .setDescription('GStone Backend Swagger API')
+    .setTitle('HotelShop API')
+    .setDescription('HotelShop Backend Swagger API')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
