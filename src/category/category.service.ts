@@ -11,6 +11,8 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryQueryDto } from './dto/category-query.dto';
 import { I18nService } from '../i18n/i18n.service';
+import { slugify } from '../_common/utils/slugify.util';
+import { MenuItemDto } from './dto/menu-item.dto';
 
 @Injectable()
 export class CategoryService {
@@ -19,6 +21,79 @@ export class CategoryService {
     private readonly categoryRepository: Repository<Category>,
     private readonly i18n: I18nService,
   ) {}
+
+  private buildMenuTree(
+    categories: Category[],
+    parentId: number | null = null,
+    parentPath: string = '',
+    lang?: string,
+  ): MenuItemDto[] {
+    return categories
+      .filter((cat) => cat.parentId === parentId)
+      .map((cat) => {
+        // name-i string-ə çevir
+        const name =
+          typeof cat.name === 'string'
+            ? cat.name
+            : this.i18n.translateField(cat.name, lang || 'az');
+
+        const fullPath = parentPath
+          ? `${parentPath}/${slugify(name)}`
+          : `/${slugify(name)}`;
+
+        const children = this.buildMenuTree(categories, cat.id, fullPath, lang);
+
+        const MenuItemDto: MenuItemDto = {
+          id: cat.id,
+          title: `•${name}`,
+          url: fullPath,
+        };
+
+        if (children.length > 0) {
+          MenuItemDto.children = children;
+        }
+
+        return MenuItemDto;
+      });
+  }
+
+  private getLanguageFromHeader(acceptLanguage?: string): string {
+    if (!acceptLanguage) {
+      return 'az'; // default
+    }
+
+    // "en-US,en;q=0.9,az;q=0.8" -> "en"
+    const lang = acceptLanguage.split(',')[0].split('-')[0].toLowerCase();
+
+    // Yalnız dəstəklənən dilləri qəbul et
+    const supportedLanguages = ['az', 'en', 'ru'];
+    return supportedLanguages.includes(lang) ? lang : 'az';
+  }
+  /**
+   * Get menu structure (for frontend navigation)
+   */
+  async getMenu(acceptLanguage?: string): Promise<MenuItemDto[]> {
+    const lang = this.getLanguageFromHeader(acceptLanguage);
+
+    const categories = await this.categoryRepository.find({
+      where: { isActive: true },
+      order: { id: 'ASC' },
+    });
+
+    return this.buildMenuTree(categories, null, '', lang);
+  }
+
+  /**
+   * Get menu structure with all languages (for admin)
+   */
+  async getMenuForAdmin(): Promise<MenuItemDto[]> {
+    const categories = await this.categoryRepository.find({
+      where: { isActive: true },
+      order: { id: 'ASC' },
+    });
+
+    return this.buildMenuTree(categories);
+  }
 
   // Yeni kateqoriya yaratmaq
   async create(createCategoryDto: CreateCategoryDto): Promise<Category> {

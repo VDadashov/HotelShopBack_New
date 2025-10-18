@@ -33,11 +33,49 @@ import { Category } from '../_common/entities/category.entity';
 import { JwtAuthGuard } from '../_common/guards/jwt-auth.guard';
 import { RolesGuard } from '../_common/guards/roles.guard';
 import { Roles } from '../_common/decorators/roles.decorator';
+import { MenuItemDto } from './dto/menu-item.dto';
 
 @ApiTags('Categories')
 @Controller('categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
+
+  @Get('menu')
+  @ApiOperation({
+    summary: 'Menyu strukturunu əldə etmək',
+    description: 'Hierarchik menyu strukturunda aktiv kateqoriyaları qaytarır',
+  })
+  @ApiQuery({
+    name: 'allLanguages',
+    required: false,
+    type: Boolean,
+    description: 'Admin üçün bütün dillər',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Menyu strukturu uğurla qaytarıldı',
+    type: [MenuItemDto], // ✅ Swagger üçün
+  })
+  async getMenu(
+    @Query('allLanguages') allLanguages?: boolean,
+    @Headers('accept-language') acceptLanguage?: string,
+  ): Promise<{ success: boolean; data: MenuItemDto[]; message: string }> {
+    if (allLanguages) {
+      const menu = await this.categoryService.getMenuForAdmin();
+      return {
+        success: true,
+        data: menu,
+        message: 'Menyu strukturu uğurla əldə edildi',
+      };
+    }
+
+    const menu = await this.categoryService.getMenu(acceptLanguage);
+    return {
+      success: true,
+      data: menu,
+      message: 'Menyu strukturu uğurla əldə edildi',
+    };
+  }
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
