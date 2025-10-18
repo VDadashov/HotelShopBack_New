@@ -22,6 +22,7 @@ async function bootstrap() {
       'http://localhost:5173',
       'http://localhost:5174',
       'https://admin.hotelshop.az',
+      "https://hotelshop.az",
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: [
