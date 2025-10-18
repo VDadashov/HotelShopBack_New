@@ -69,30 +69,16 @@ export class CategoryService {
     const supportedLanguages = ['az', 'en', 'ru'];
     return supportedLanguages.includes(lang) ? lang : 'az';
   }
-  /**
-   * Get menu structure (for frontend navigation)
-   */
+
   async getMenu(acceptLanguage?: string): Promise<MenuItemDto[]> {
     const lang = this.getLanguageFromHeader(acceptLanguage);
 
     const categories = await this.categoryRepository.find({
       where: { isActive: true },
-      order: { id: 'ASC' },
+      order: { index: 'ASC' },
     });
 
     return this.buildMenuTree(categories, null, '', lang);
-  }
-
-  /**
-   * Get menu structure with all languages (for admin)
-   */
-  async getMenuForAdmin(): Promise<MenuItemDto[]> {
-    const categories = await this.categoryRepository.find({
-      where: { isActive: true },
-      order: { id: 'ASC' },
-    });
-
-    return this.buildMenuTree(categories);
   }
 
   // Yeni kateqoriya yaratmaq
@@ -133,9 +119,26 @@ export class CategoryService {
       },
     });
 
+    // Eyni parent altında sonuncu kateqoriyanın index-ini tapmaq
+    let maxIndex = 0;
+    if (createCategoryDto.parentId) {
+      const lastCategory = await this.categoryRepository.findOne({
+        where: { parentId: createCategoryDto.parentId },
+        order: { index: 'DESC' },
+      });
+      maxIndex = lastCategory ? lastCategory.index + 1 : 0;
+    } else {
+      // Root kateqoriyalar üçün
+      const lastRootCategory = await this.categoryRepository.findOne({
+        where: { parentId: IsNull() },
+        order: { index: 'DESC' },
+      });
+      maxIndex = lastRootCategory ? lastRootCategory.index + 1 : 0;
+    }
+
     const category = this.categoryRepository.create({
       name: createCategoryDto.name,
-      imageUrl: createCategoryDto.imageUrl,
+      index: createCategoryDto.index ?? maxIndex,
       isActive: createCategoryDto.isActive,
       isProductHolder: createCategoryDto.isProductHolder,
       parentId: createCategoryDto.parentId,
@@ -145,7 +148,6 @@ export class CategoryService {
     return await this.categoryRepository.save(category);
   }
 
-  // Bütün kateqoriyaları əldə etmək (filtrsiz) - lang dəstəyi ilə
   async getAll(lang?: string): Promise<any[]> {
     lang = lang || 'az';
     const categories = await this.categoryRepository.find({

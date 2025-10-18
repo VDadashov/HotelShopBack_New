@@ -1,4 +1,3 @@
-// src/entities/category.entity.ts
 import {
   Entity,
   Column,
@@ -10,12 +9,18 @@ import { Product } from './product.entity';
 import { BaseEntity } from './_base/base.entity';
 
 @Entity('categories')
-export class Category extends BaseEntity{
+export class Category extends BaseEntity {
   @Column({ type: 'jsonb' })
   name: { az: string; en?: string; ru?: string };
 
-  @Column({ nullable: true })
-  imageUrl: string;
+  // 🔄 Şəkil silindi, əvəzində sıralama üçün index əlavə edildi
+  @Column({
+    type: 'int',
+    nullable: false,
+    default: 0,
+    comment: 'Sıralama üçün indeks (artan şəkildə göstəriləcək)',
+  })
+  index: number;
 
   @Column({ default: true })
   isActive: boolean;

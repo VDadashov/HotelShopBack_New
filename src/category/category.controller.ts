@@ -57,18 +57,8 @@ export class CategoryController {
     type: [MenuItemDto], // ✅ Swagger üçün
   })
   async getMenu(
-    @Query('allLanguages') allLanguages?: boolean,
     @Headers('accept-language') acceptLanguage?: string,
   ): Promise<{ success: boolean; data: MenuItemDto[]; message: string }> {
-    if (allLanguages) {
-      const menu = await this.categoryService.getMenuForAdmin();
-      return {
-        success: true,
-        data: menu,
-        message: 'Menyu strukturu uğurla əldə edildi',
-      };
-    }
-
     const menu = await this.categoryService.getMenu(acceptLanguage);
     return {
       success: true,

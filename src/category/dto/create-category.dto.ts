@@ -1,5 +1,14 @@
 // src/dto/category/create-category.dto.ts
-import { IsString, IsOptional, IsBoolean, IsNumber, IsNotEmpty, IsUrl, IsObject, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsNumber,
+  IsNotEmpty,
+  IsUrl,
+  IsObject,
+  ValidateNested,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
@@ -7,15 +16,15 @@ import { Type } from 'class-transformer';
 export class MultilingualTextDto {
   @ApiProperty({
     description: 'Azərbaycan dilində mətn',
-    example: 'Elektronika'
+    example: 'Elektronika',
   })
   @IsString()
   @IsNotEmpty()
   az: string;
 
   @ApiProperty({
-    description: 'İngilis dilində mətn', 
-    example: 'Electronics'
+    description: 'İngilis dilində mətn',
+    example: 'Electronics',
   })
   @IsString()
   @IsNotEmpty()
@@ -23,7 +32,7 @@ export class MultilingualTextDto {
 
   @ApiProperty({
     description: 'Rus dilində mətn',
-    example: 'Электроника'
+    example: 'Электроника',
   })
   @IsString()
   @IsNotEmpty()
@@ -36,9 +45,9 @@ export class CreateCategoryDto {
     type: MultilingualTextDto,
     example: {
       az: 'Elektronika',
-      en: 'Electronics', 
-      ru: 'Электроника'
-    }
+      en: 'Electronics',
+      ru: 'Электроника',
+    },
   })
   @IsObject()
   @ValidateNested()
@@ -46,17 +55,17 @@ export class CreateCategoryDto {
   name: MultilingualTextDto;
 
   @ApiPropertyOptional({
-    description: 'Kateqoriya şəkli URL-si',
-    example: 'https://example.com/image.jpg'
+    description: 'Sıralama üçün indeks (artan şəkildə göstəriləcək)',
+    default: 0,
+    example: 0,
   })
   @IsOptional()
-  @IsString()
-  @IsUrl()
-  imageUrl?: string;
+  @IsNumber()
+  index?: number;
 
   @ApiPropertyOptional({
     description: 'Kateqoriya aktiv statusu',
-    default: true
+    default: true,
   })
   @IsOptional()
   @IsBoolean()
@@ -64,7 +73,7 @@ export class CreateCategoryDto {
 
   @ApiPropertyOptional({
     description: 'Bu kateqoriya məhsul saxlaya bilərmi',
-    default: false
+    default: false,
   })
   @IsOptional()
   @IsBoolean()
@@ -72,7 +81,7 @@ export class CreateCategoryDto {
 
   @ApiPropertyOptional({
     description: 'Parent kateqoriya ID-si',
-    example: 1
+    example: 1,
   })
   @IsOptional()
   @IsNumber()
