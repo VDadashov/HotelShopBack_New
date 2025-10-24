@@ -130,15 +130,21 @@ export class CategoryController {
     @Query(
       new ValidationPipe({
         transform: true,
-        whitelist: true,
+        whitelist: false,
         skipMissingProperties: true,
         forbidUnknownValues: false,
       }),
     )
     queryDto: CategoryQueryDto,
+    @Query('isActive') isActive?: boolean,
     @Query('allLanguages') allLanguages?: boolean,
     @Headers('accept-language') acceptLanguage?: string,
   ) {
+    // isActive parametrini queryDto-ya əlavə et
+    if (isActive !== undefined) {
+      queryDto.isActive = isActive;
+    }
+
     if (allLanguages) {
       const result = await this.categoryService.findAllForAdmin(queryDto);
       return {
@@ -179,16 +185,32 @@ export class CategoryController {
     type: Boolean,
     description: 'Admin üçün bütün dillər',
   })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    type: Boolean,
+    description: 'Aktiv status filtri',
+  })
   @ApiResponse({
     status: 200,
     description: 'Bütün kateqoriyalar uğurla qaytarıldı',
   })
   async getAll(
-    @Query('allLanguages') allLanguages?: boolean,
+    @Query(
+      new ValidationPipe({
+        transform: true,
+        whitelist: false,
+        skipMissingProperties: true,
+        forbidUnknownValues: false,
+      }),
+    )
+    queryParams: { allLanguages?: boolean; isActive?: boolean },
     @Headers('accept-language') acceptLanguage?: string,
   ) {
+    const { allLanguages, isActive } = queryParams;
+
     if (allLanguages) {
-      const categories = await this.categoryService.getAllForAdmin();
+      const categories = await this.categoryService.getAllForAdmin(isActive);
       return {
         success: true,
         data: categories,
@@ -196,7 +218,7 @@ export class CategoryController {
       };
     }
 
-    const categories = await this.categoryService.getAll(acceptLanguage);
+    const categories = await this.categoryService.getAll(acceptLanguage, isActive);
     return {
       success: true,
       data: categories,

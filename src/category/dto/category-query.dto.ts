@@ -15,7 +15,6 @@ export class CategoryQueryDto {
   @IsOptional()
   @IsBoolean()
   @Transform(({ value }) => {
-    console.log('isActive original value:', value, typeof value);
     if (value === 'true') return true;
     if (value === 'false') return false;
     if (value === true || value === false) return value;

@@ -96,15 +96,21 @@ export class BrandController {
     @Query(
       new ValidationPipe({
         transform: true,
-        whitelist: true,
+        whitelist: false,
         skipMissingProperties: true,
         forbidUnknownValues: false,
       }),
     )
     queryDto: BrandQueryDto,
+    @Query('isActive') isActive?: boolean,
     @Query('allLanguages') allLanguages?: boolean,
     @Headers('accept-language') acceptLanguage?: string,
   ) {
+    // isActive parametrini queryDto-ya əlavə et
+    if (isActive !== undefined) {
+      queryDto.isActive = isActive;
+    }
+
     if (allLanguages) {
       const result = await this.brandService.findAllForAdmin(queryDto);
       return {
@@ -145,17 +151,33 @@ export class BrandController {
     type: Boolean,
     description: 'Admin üçün bütün dillər',
   })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    type: Boolean,
+    description: 'Aktiv status filtri',
+  })
   @ApiResponse({
     status: 200,
     description: 'Bütün brandlar uğurla qaytarıldı',
     type: [Brand],
   })
   async getAll(
-    @Query('allLanguages') allLanguages?: boolean,
+    @Query(
+      new ValidationPipe({
+        transform: true,
+        whitelist: false,
+        skipMissingProperties: true,
+        forbidUnknownValues: false,
+      }),
+    )
+    queryParams: { allLanguages?: boolean; isActive?: boolean },
     @Headers('accept-language') acceptLanguage?: string,
   ) {
+    const { allLanguages, isActive } = queryParams;
+
     if (allLanguages) {
-      const brands = await this.brandService.getAllForAdmin();
+      const brands = await this.brandService.getAllForAdmin(isActive);
       return {
         success: true,
         data: brands,
@@ -163,7 +185,7 @@ export class BrandController {
       };
     }
 
-    const brands = await this.brandService.getAll(acceptLanguage);
+    const brands = await this.brandService.getAll(acceptLanguage, isActive);
     return {
       success: true,
       data: brands,

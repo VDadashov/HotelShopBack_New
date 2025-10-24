@@ -74,15 +74,11 @@ export class FaqService {
     const queryBuilder = this.faqRepository.createQueryBuilder('faq');
 
     if (isActive !== undefined) {
-      console.log('Adding isActive filter with value:', isActive);
       queryBuilder.andWhere('faq.isActive = :isActive', { isActive });
-    } else {
-      console.log('isActive is undefined - no filter applied');
     }
 
     if (search && search.trim() !== '') {
       const searchTerm = `%${search.trim().toLowerCase()}%`;
-      console.log('Adding search filter:', searchTerm);
 
       if (searchLang) {
         queryBuilder.andWhere(
@@ -110,10 +106,6 @@ export class FaqService {
     queryBuilder.addOrderBy('faq.id', 'DESC').skip(skip).take(limit);
 
     const [data, total] = await queryBuilder.getManyAndCount();
-
-    console.log('Found records count:', data.length);
-    console.log('Total records:', total);
-    console.log('===================');
 
     const translatedData = data.map((faq) => ({
       ...faq,

@@ -148,9 +148,16 @@ export class CategoryService {
     return await this.categoryRepository.save(category);
   }
 
-  async getAll(lang?: string): Promise<any[]> {
+  async getAll(lang?: string, isActive?: boolean): Promise<any[]> {
     lang = lang || 'az';
+    const whereCondition: any = {};
+    
+    if (isActive !== undefined) {
+      whereCondition.isActive = isActive;
+    }
+
     const categories = await this.categoryRepository.find({
+      where: whereCondition,
       relations: ['parent', 'children'],
       order: {
         level: 'ASC',
@@ -177,8 +184,15 @@ export class CategoryService {
   }
 
   // Admin üçün bütün kateqoriyaları əldə etmək (tərcüməsiz)
-  async getAllForAdmin(): Promise<Category[]> {
+  async getAllForAdmin(isActive?: boolean): Promise<Category[]> {
+    const whereCondition: any = {};
+    
+    if (isActive !== undefined) {
+      whereCondition.isActive = isActive;
+    }
+
     return await this.categoryRepository.find({
+      where: whereCondition,
       relations: ['parent', 'children'],
       order: {
         level: 'ASC',
@@ -251,10 +265,6 @@ export class CategoryService {
       .addOrderBy('category.id', 'ASC')
       .skip(skip)
       .take(limit);
-
-    // Debug üçün query-ni console-da göstər
-    console.log('Generated SQL:', queryBuilder.getSql());
-    console.log('Search term:', search);
 
     const [data, total] = await queryBuilder.getManyAndCount();
 

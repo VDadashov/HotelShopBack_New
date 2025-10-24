@@ -42,9 +42,16 @@ export class BrandService {
   }
 
   // Bütün brandları əldə etmək (filtrsiz) - lang dəstəyi ilə
-  async getAll(lang?: string): Promise<any[]> {
+  async getAll(lang?: string, isActive?: boolean): Promise<any[]> {
     lang = lang || 'az';
+    const whereCondition: any = {};
+    
+    if (isActive !== undefined) {
+      whereCondition.isActive = isActive;
+    }
+
     const brands = await this.brandRepository.find({
+      where: whereCondition,
       order: {
         id: 'ASC',
       },
@@ -57,8 +64,15 @@ export class BrandService {
   }
 
   // Admin üçün bütün brandları əldə etmək (tərcüməsiz)
-  async getAllForAdmin(): Promise<Brand[]> {
+  async getAllForAdmin(isActive?: boolean): Promise<Brand[]> {
+    const whereCondition: any = {};
+    
+    if (isActive !== undefined) {
+      whereCondition.isActive = isActive;
+    }
+
     return await this.brandRepository.find({
+      where: whereCondition,
       order: {
         id: 'ASC',
       },
@@ -175,7 +189,6 @@ export class BrandService {
   async findOneForAdmin(id: number): Promise<Brand> {
     const brand = await this.brandRepository.findOne({
       where: { id },
-      relations: ['products'],
     });
 
     if (!brand) {
@@ -209,18 +222,6 @@ export class BrandService {
   // Brandı silmək
   async remove(id: number): Promise<void> {
     const brand = await this.findOneForAdmin(id);
-
-    // Burada məhsullarla əlaqəni yoxlamaq olar
-    // const productsCount = await this.productRepository.count({
-    //   where: { brandId: id },
-    // });
-    //
-    // if (productsCount > 0) {
-    //   throw new BadRequestException(
-    //     'Bu brand ilə bağlı məhsullar mövcuddur, əvvəlcə onları silin',
-    //   );
-    // }
-
     await this.brandRepository.remove(brand);
   }
 

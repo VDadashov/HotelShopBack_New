@@ -32,25 +32,32 @@ export class TestimonialQueryDto {
   @IsString()
   search?: string;
 
+
   @ApiPropertyOptional({
-    description: 'Axtarış dili (müəyyən dildə axtarış üçün)',
-    example: 'az',
-    enum: ['az', 'en', 'ru'],
+    description: 'Reytinq filteri (minimum reytinq)',
+    example: 4,
+    minimum: 1,
+    maximum: 5,
   })
   @IsOptional()
-  @IsString()
-  @IsIn(['az', 'en', 'ru'])
-  lang?: 'az' | 'en' | 'ru';
+  @Transform(({ value }) => {
+    if (value === '' || value === null || value === undefined) return undefined;
+    const parsed = parseInt(value);
+    return isNaN(parsed) ? undefined : parsed;
+  })
+  @IsNumber({}, { message: 'MinRating rəqəm olmalıdır' })
+  @Min(1, { message: 'MinRating ən azı 1 olmalıdır' })
+  minRating?: number;
 
   @ApiPropertyOptional({
     description: 'Sıralama növü',
     example: 'newest',
-    enum: ['newest', 'oldest', 'name-az', 'name-za'],
+    enum: ['newest', 'oldest', 'name-az', 'name-za', 'rating-high', 'rating-low'],
   })
   @IsOptional()
   @IsString()
-  @IsIn(['newest', 'oldest', 'name-az', 'name-za'])
-  sort?: 'newest' | 'oldest' | 'name-az' | 'name-za';
+  @IsIn(['newest', 'oldest', 'name-az', 'name-za', 'rating-high', 'rating-low'])
+  sort?: 'newest' | 'oldest' | 'name-az' | 'name-za' | 'rating-high' | 'rating-low';
 
   @ApiPropertyOptional({
     description: 'Səhifə nömrəsi (1-dən başlayır)',

@@ -57,16 +57,6 @@ export class ProductQueryDto {
   searchQuery?: string;
 
   @ApiPropertyOptional({
-    description: 'Axtarış dili (müəyyən dildə axtarış üçün)',
-    example: 'az',
-    enum: ['az', 'en', 'ru'],
-  })
-  @IsOptional()
-  @IsString()
-  @IsIn(['az', 'en', 'ru'])
-  lang?: 'az' | 'en' | 'ru';
-
-  @ApiPropertyOptional({
     description: 'Sıralama növü',
     example: 'az',
     enum: ['az', 'za', 'newest', 'oldest', 'most-viewed'],

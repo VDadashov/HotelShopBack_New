@@ -19,11 +19,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    console.log('JWT Payload:', payload);
     const admin = await this.adminRepo.findOneBy({ id: payload.sub });
-    console.log('Found admin:', admin);
     if (!admin || !admin.isActive) {
-      console.log('Admin not found or inactive:', { admin: !!admin, isActive: admin?.isActive });
       throw new UnauthorizedException('Invalid token');
     }
     return { id: admin.id, username: admin.username, role: admin.role };

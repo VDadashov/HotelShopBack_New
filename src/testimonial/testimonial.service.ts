@@ -24,6 +24,7 @@ export class TestimonialService {
       message: createTestimonialDto.message,
       imageUrl: createTestimonialDto.imageUrl,
       isActive: createTestimonialDto.isActive ?? true,
+      rating: createTestimonialDto.rating ?? 5,
     });
 
     return await this.testimonialRepository.save(testimonial);
@@ -70,6 +71,7 @@ export class TestimonialService {
       limit = 10,
       isActive,
       search,
+      minRating,
       sort = 'newest',
     } = queryDto;
 
@@ -83,33 +85,27 @@ export class TestimonialService {
       queryBuilder.andWhere('testimonial.isActive = :isActive', { isActive });
     }
 
+    // Reytinq filteri
+    if (minRating !== undefined) {
+      queryBuilder.andWhere('testimonial.rating >= :minRating', { minRating });
+    }
+
     // PostgreSQL JSONB axtarışı
     if (search && search.trim() !== '') {
       const searchTerm = `%${search.trim().toLowerCase()}%`;
-
-      if (queryDto.lang) {
-        // Müəyyən dildə axtarış
-        queryBuilder.andWhere(
-          `(
-            LOWER(testimonial.name->>'${queryDto.lang}') LIKE LOWER(:search) OR 
-            LOWER(testimonial.message->>'${queryDto.lang}') LIKE LOWER(:search)
-          )`,
-          { search: searchTerm },
-        );
-      } else {
-        // Bütün dillərdə axtarış
-        queryBuilder.andWhere(
-          `(
-            LOWER(testimonial.name->>'az') LIKE LOWER(:search) OR 
-            LOWER(testimonial.name->>'en') LIKE LOWER(:search) OR 
-            LOWER(testimonial.name->>'ru') LIKE LOWER(:search) OR
-            LOWER(testimonial.message->>'az') LIKE LOWER(:search) OR 
-            LOWER(testimonial.message->>'en') LIKE LOWER(:search) OR 
-            LOWER(testimonial.message->>'ru') LIKE LOWER(:search)
-          )`,
-          { search: searchTerm },
-        );
-      }
+      
+      // Bütün dillərdə axtarış
+      queryBuilder.andWhere(
+        `(
+          LOWER(testimonial.name->>'az') LIKE LOWER(:search) OR 
+          LOWER(testimonial.name->>'en') LIKE LOWER(:search) OR 
+          LOWER(testimonial.name->>'ru') LIKE LOWER(:search) OR
+          LOWER(testimonial.message->>'az') LIKE LOWER(:search) OR 
+          LOWER(testimonial.message->>'en') LIKE LOWER(:search) OR 
+          LOWER(testimonial.message->>'ru') LIKE LOWER(:search)
+        )`,
+        { search: searchTerm },
+      );
     }
 
     // Sıralama
@@ -126,16 +122,18 @@ export class TestimonialService {
       case 'name-za':
         queryBuilder.orderBy("testimonial.name->>'az'", 'DESC');
         break;
+      case 'rating-high':
+        queryBuilder.orderBy('testimonial.rating', 'DESC');
+        break;
+      case 'rating-low':
+        queryBuilder.orderBy('testimonial.rating', 'ASC');
+        break;
       default:
         queryBuilder.orderBy('testimonial.id', 'DESC');
     }
 
     // Paginasiya
     queryBuilder.skip(skip).take(limit);
-
-    // Debug üçün query-ni console-da göstər
-    console.log('Generated SQL:', queryBuilder.getSql());
-    console.log('Search term:', search);
 
     const [data, total] = await queryBuilder.getManyAndCount();
 
@@ -166,6 +164,7 @@ export class TestimonialService {
       limit = 10,
       isActive,
       search,
+      minRating,
       sort = 'newest',
     } = queryDto;
 
@@ -179,23 +178,26 @@ export class TestimonialService {
       queryBuilder.andWhere('testimonial.isActive = :isActive', { isActive });
     }
 
+    // Reytinq filteri
+    if (minRating !== undefined) {
+      queryBuilder.andWhere('testimonial.rating >= :minRating', { minRating });
+    }
+
     // Axtarış (JSON sahəsində axtarış)
-    if (search) {
-      if (queryDto.lang) {
-        queryBuilder.andWhere(
-          '(testimonial.name->>"$.' +
-            queryDto.lang +
-            '" LIKE :search OR testimonial.message->>"$.' +
-            queryDto.lang +
-            '" LIKE :search)',
-          { search: `%${search}%` },
-        );
-      } else {
-        queryBuilder.andWhere(
-          '(testimonial.name->>"$.az" LIKE :search OR testimonial.name->>"$.en" LIKE :search OR testimonial.name->>"$.ru" LIKE :search OR testimonial.message->>"$.az" LIKE :search OR testimonial.message->>"$.en" LIKE :search OR testimonial.message->>"$.ru" LIKE :search)',
-          { search: `%${search}%` },
-        );
-      }
+    if (search && search.trim() !== '') {
+      const searchTerm = `%${search.trim().toLowerCase()}%`;
+      
+      queryBuilder.andWhere(
+        `(
+          LOWER(testimonial.name->>'az') LIKE LOWER(:search) OR 
+          LOWER(testimonial.name->>'en') LIKE LOWER(:search) OR 
+          LOWER(testimonial.name->>'ru') LIKE LOWER(:search) OR
+          LOWER(testimonial.message->>'az') LIKE LOWER(:search) OR 
+          LOWER(testimonial.message->>'en') LIKE LOWER(:search) OR 
+          LOWER(testimonial.message->>'ru') LIKE LOWER(:search)
+        )`,
+        { search: searchTerm },
+      );
     }
 
     // Sıralama
@@ -211,6 +213,12 @@ export class TestimonialService {
         break;
       case 'name-za':
         queryBuilder.orderBy("testimonial.name->>'az'", 'DESC');
+        break;
+      case 'rating-high':
+        queryBuilder.orderBy('testimonial.rating', 'DESC');
+        break;
+      case 'rating-low':
+        queryBuilder.orderBy('testimonial.rating', 'ASC');
         break;
       default:
         queryBuilder.orderBy('testimonial.id', 'DESC');

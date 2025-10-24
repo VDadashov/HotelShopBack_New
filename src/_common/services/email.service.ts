@@ -8,7 +8,7 @@
 //   private transporter: nodemailer.Transporter;
 
 //   constructor(private configService: ConfigService) {
-//     this.transporter = nodemailer.createTransport({
+//     this.transporter = nodemailer.createTransporter({
 //       host: this.configService.get('MAIL_HOST'),
 //       port: this.configService.get('MAIL_PORT'),
 //       secure: true, // 587 üçün false, 465 üçün true
@@ -195,4 +195,4 @@
 //       </html>
 //     `;
 //   }
-// } 
+// }

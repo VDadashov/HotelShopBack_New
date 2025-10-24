@@ -96,15 +96,16 @@ export class TestimonialController {
     description: 'Müştəri adı və ya rəyində axtarış',
   })
   @ApiQuery({
-    name: 'lang',
+    name: 'minRating',
     required: false,
-    enum: ['az', 'en', 'ru'],
-    description: 'Axtarış dili',
+    type: Number,
+    description: 'Minimum reytinq (1-5)',
+    example: 4,
   })
   @ApiQuery({
     name: 'sort',
     required: false,
-    enum: ['newest', 'oldest', 'name-az', 'name-za'],
+    enum: ['newest', 'oldest', 'name-az', 'name-za', 'rating-high', 'rating-low'],
     description: 'Sıralama növü',
   })
   @ApiQuery({
@@ -121,15 +122,21 @@ export class TestimonialController {
     @Query(
       new ValidationPipe({
         transform: true,
-        whitelist: true,
+        whitelist: false,
         skipMissingProperties: true,
         forbidUnknownValues: false,
       }),
     )
     queryDto: TestimonialQueryDto,
+    @Query('isActive') isActive?: boolean,
     @Query('allLanguages') allLanguages?: boolean,
     @Headers('accept-language') acceptLanguage?: string,
   ) {
+    // isActive parametrini queryDto-ya əlavə et
+    if (isActive !== undefined) {
+      queryDto.isActive = isActive;
+    }
+
     if (allLanguages) {
       const result = await this.testimonialService.findAllForAdmin(queryDto);
       return {

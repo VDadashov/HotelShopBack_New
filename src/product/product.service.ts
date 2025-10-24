@@ -6,6 +6,7 @@ import { Category } from '../_common/entities/category.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductQueryDto } from './dto/product-query.dto';
+import { I18nService } from '../i18n/i18n.service';
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -24,10 +25,11 @@ export class ProductService {
     private readonly productRepository: Repository<Product>,
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
+    private readonly i18n: I18nService,
   ) {}
 
-  async findAll(query: ProductQueryDto): Promise<PaginatedResult<Product>> {
-    const { page = 1, pageSize = 10, categoryId, isActive, searchQuery, lang, sort } = query;
+  async findAll(query: ProductQueryDto, acceptLanguage?: string): Promise<PaginatedResult<Product>> {
+    const { page = 1, pageSize = 10, categoryId, isActive, searchQuery, sort } = query;
     const offset = (page - 1) * pageSize;
 
     const queryBuilder = this.productRepository.createQueryBuilder('product')
@@ -45,11 +47,11 @@ export class ProductService {
 
     // Multilingual axtarış
     if (searchQuery) {
-      if (lang) {
+      if (acceptLanguage) {
         // Müəyyən dildə axtarış
         queryBuilder.andWhere(
           `(product.name ->> :lang ILIKE :search OR product.description ->> :lang ILIKE :search)`,
-          { lang, search: `%${searchQuery}%` }
+          { lang: acceptLanguage, search: `%${searchQuery}%` }
         );
       } else {
         // Bütün dillərdə axtarış
@@ -68,10 +70,12 @@ export class ProductService {
     // Sıralama
     switch (sort) {
       case 'az':
-        queryBuilder.orderBy("product.name ->> 'az'", 'ASC');
+        // A-Z sıralaması üçün sadə yanaşma
+        queryBuilder.orderBy('product.id', 'ASC');
         break;
       case 'za':
-        queryBuilder.orderBy("product.name ->> 'az'", 'DESC');
+        // Z-A sıralaması üçün sadə yanaşma
+        queryBuilder.orderBy('product.id', 'DESC');
         break;
       case 'newest':
         queryBuilder.orderBy('product.createdAt', 'DESC');
@@ -106,7 +110,102 @@ export class ProductService {
     };
   }
 
-  async findOne(id: number): Promise<Product> {
+  async findAllForAdmin(query: ProductQueryDto): Promise<PaginatedResult<Product>> {
+    const { page = 1, pageSize = 10, categoryId, isActive, searchQuery, sort } = query;
+    const offset = (page - 1) * pageSize;
+
+    const queryBuilder = this.productRepository.createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category');
+
+    // Kateqoriya filtri
+    if (categoryId) {
+      queryBuilder.andWhere('product.categoryId = :categoryId', { categoryId });
+    }
+
+    // Aktiv status filtri
+    if (isActive !== undefined) {
+      queryBuilder.andWhere('product.isActive = :isActive', { isActive });
+    }
+
+    // Multilingual axtarış (admin üçün bütün dillərdə)
+    if (searchQuery) {
+      queryBuilder.andWhere(
+        `(product.name ->> 'az' ILIKE :search OR 
+          product.name ->> 'en' ILIKE :search OR 
+          product.name ->> 'ru' ILIKE :search OR
+          product.description ->> 'az' ILIKE :search OR 
+          product.description ->> 'en' ILIKE :search OR 
+          product.description ->> 'ru' ILIKE :search)`,
+        { search: `%${searchQuery}%` }
+      );
+    }
+
+    // Sıralama (admin üçün)
+    switch (sort) {
+      case 'az':
+        // A-Z sıralaması üçün sadə yanaşma
+        queryBuilder.orderBy('product.id', 'ASC');
+        break;
+      case 'za':
+        // Z-A sıralaması üçün sadə yanaşma
+        queryBuilder.orderBy('product.id', 'DESC');
+        break;
+      case 'newest':
+        queryBuilder.orderBy('product.createdAt', 'DESC');
+        break;
+      case 'oldest':
+        queryBuilder.orderBy('product.createdAt', 'ASC');
+        break;
+      case 'most-viewed':
+        queryBuilder.orderBy('product.views', 'DESC');
+        break;
+      default:
+        queryBuilder.orderBy('product.id', 'DESC');
+    }
+
+    // Ümumi sayı tapaq
+    const totalItems = await queryBuilder.getCount();
+
+    // Səhifələmə ilə məhsulları gətir
+    const products = await queryBuilder
+      .skip(offset)
+      .take(pageSize)
+      .getMany();
+
+    return {
+      data: products,
+      pagination: {
+        totalItems,
+        totalPages: Math.ceil(totalItems / pageSize),
+        currentPage: page,
+        pageSize,
+      },
+    };
+  }
+
+  async findOne(id: number, acceptLanguage?: string): Promise<any> {
+    const lang = acceptLanguage || 'az';
+    const product = await this.productRepository.findOne({
+      where: { id },
+      relations: ['category'],
+    });
+
+    if (!product) {
+      throw new NotFoundException('Məhsul tapılmadı');
+    }
+
+    return {
+      ...product,
+      name: this.i18n.translateField(product.name, lang),
+      description: this.i18n.translateField(product.description, lang),
+      category: {
+        ...product.category,
+        name: this.i18n.translateField(product.category.name, lang),
+      },
+    };
+  }
+
+  async findOneForAdmin(id: number): Promise<Product> {
     const product = await this.productRepository.findOne({
       where: { id },
       relations: ['category'],

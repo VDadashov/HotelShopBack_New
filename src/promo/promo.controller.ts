@@ -9,10 +9,8 @@ import {
   Query,
   UseGuards,
   ParseIntPipe,
-  UseInterceptors,
-  UploadedFile,
+  ValidationPipe,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -20,7 +18,6 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiQuery,
-  ApiConsumes,
   ApiBody,
 } from '@nestjs/swagger';
 import { PromoService } from './promo.service';
@@ -61,12 +58,6 @@ export class PromoController {
     description: 'Promo başlıq və ya təsvirində axtarış',
   })
   @ApiQuery({
-    name: 'lang',
-    required: false,
-    enum: ['az', 'en', 'ru'],
-    description: 'Axtarış dili',
-  })
-  @ApiQuery({
     name: 'current',
     required: false,
     type: Boolean,
@@ -87,10 +78,26 @@ export class PromoController {
   @ApiQuery({
     name: 'sort',
     required: false,
-    enum: ['newest', 'oldest', 'start-date-asc', 'start-date-desc', 'end-date-asc', 'end-date-desc'],
+    enum: ['newest', 'oldest', 'start-date-asc', 'start-date-desc', 'end-date-asc', 'end-date-desc', 'title-az', 'title-za'],
     description: 'Sıralama növü',
   })
-  async findAll(@Query() query: PromoQueryDto) {
+  async findAll(
+    @Query(
+      new ValidationPipe({
+        transform: true,
+        whitelist: false,
+        skipMissingProperties: true,
+        forbidUnknownValues: false,
+      }),
+    )
+    query: PromoQueryDto,
+    @Query('isActive') isActive?: boolean,
+  ) {
+    // isActive parametrini query-ya əlavə et
+    if (isActive !== undefined) {
+      query.isActive = isActive;
+    }
+    
     return await this.promoService.findAll(query);
   }
 
@@ -126,52 +133,9 @@ export class PromoController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  @UseInterceptors(FileInterceptor('backgroundImg'))
   @ApiBearerAuth()
-  @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Yeni promo yarat' })
-  @ApiBody({
-    description: 'Promo məlumatları',
-    schema: {
-      type: 'object',
-      properties: {
-        title: {
-          type: 'object',
-          properties: {
-            az: { type: 'string', example: 'Yay Promosiyası' },
-            en: { type: 'string', example: 'Summer Promotion' },
-            ru: { type: 'string', example: 'Летняя акция' },
-          },
-        },
-        subtitle: {
-          type: 'object',
-          properties: {
-            az: { type: 'string', example: 'Böyük endirim!' },
-            en: { type: 'string', example: 'Big discount!' },
-            ru: { type: 'string', example: 'Большая скидка!' },
-          },
-        },
-        description: {
-          type: 'object',
-          properties: {
-            az: { type: 'string', example: 'Bu yay böyük endirimlər...' },
-            en: { type: 'string', example: 'This summer great discounts...' },
-            ru: { type: 'string', example: 'Этим летом большие скидки...' },
-          },
-        },
-        startDate: { type: 'string', format: 'date-time', example: '2024-06-01T00:00:00.000Z' },
-        endDate: { type: 'string', format: 'date-time', example: '2024-08-31T23:59:59.000Z' },
-        productId: { type: 'number', example: 1 },
-        isActive: { type: 'boolean', example: true },
-        backgroundImg: {
-          type: 'string',
-          format: 'binary',
-          description: 'Promo arxa plan şəkli',
-        },
-      },
-      required: ['title', 'startDate', 'endDate', 'productId'],
-    },
-  })
+  @ApiBody({ type: CreatePromoDto })
   @ApiResponse({
     status: 201,
     description: 'Promo uğurla yaradıldı',
@@ -184,69 +148,21 @@ export class PromoController {
     status: 401,
     description: 'Qeyri-təsdiq edilmiş istifadəçi',
   })
-  async create(
-    @Body() createPromoDto: CreatePromoDto,
-    @UploadedFile() file?: Express.Multer.File,
-  ) {
-    if (file) {
-      createPromoDto.backgroundImg = `/uploads/images/${file.filename}`;
-    }
+  async create(@Body() createPromoDto: CreatePromoDto) {
     return await this.promoService.create(createPromoDto);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  @UseInterceptors(FileInterceptor('backgroundImg'))
   @ApiBearerAuth()
-  @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Promo yenilə' })
   @ApiParam({
     name: 'id',
     type: 'number',
     description: 'Promo ID-si',
   })
-  @ApiBody({
-    description: 'Yenilənəcək promo məlumatları',
-    schema: {
-      type: 'object',
-      properties: {
-        title: {
-          type: 'object',
-          properties: {
-            az: { type: 'string' },
-            en: { type: 'string' },
-            ru: { type: 'string' },
-          },
-        },
-        subtitle: {
-          type: 'object',
-          properties: {
-            az: { type: 'string' },
-            en: { type: 'string' },
-            ru: { type: 'string' },
-          },
-        },
-        description: {
-          type: 'object',
-          properties: {
-            az: { type: 'string' },
-            en: { type: 'string' },
-            ru: { type: 'string' },
-          },
-        },
-        startDate: { type: 'string', format: 'date-time' },
-        endDate: { type: 'string', format: 'date-time' },
-        productId: { type: 'number' },
-        isActive: { type: 'boolean' },
-        backgroundImg: {
-          type: 'string',
-          format: 'binary',
-          description: 'Yeni promo arxa plan şəkli',
-        },
-      },
-    },
-  })
+  @ApiBody({ type: UpdatePromoDto })
   @ApiResponse({
     status: 200,
     description: 'Promo uğurla yeniləndi',
@@ -262,11 +178,7 @@ export class PromoController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updatePromoDto: UpdatePromoDto,
-    @UploadedFile() file?: Express.Multer.File,
   ) {
-    if (file) {
-      updatePromoDto.backgroundImg = `/uploads/images/${file.filename}`;
-    }
     return await this.promoService.update(id, updatePromoDto);
   }
 

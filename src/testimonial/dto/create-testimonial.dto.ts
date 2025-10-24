@@ -7,6 +7,9 @@ import {
   ValidateNested,
   IsNotEmpty,
   MinLength,
+  IsInt,
+  Min,
+  Max,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
@@ -119,4 +122,18 @@ export class CreateTestimonialDto {
     return value;
   })
   isActive?: boolean = true;
+
+  @ApiPropertyOptional({
+    description: 'Müştəri reytinqi (1-5 arası)',
+    example: 5,
+    minimum: 1,
+    maximum: 5,
+    default: 5,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  @Transform(({ value }) => parseInt(value))
+  rating?: number = 5;
 }

@@ -8,13 +8,12 @@ export class PromoQueryDto {
     example: true,
   })
   @IsOptional()
-  @IsBoolean()
   @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      return value === 'true';
-    }
-    return value;
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
   })
+  @IsBoolean()
   isActive?: boolean;
 
   @ApiPropertyOptional({
@@ -35,27 +34,16 @@ export class PromoQueryDto {
   search?: string;
 
   @ApiPropertyOptional({
-    description: 'Axtarış dili (müəyyən dildə axtarış üçün)',
-    example: 'az',
-    enum: ['az', 'en', 'ru'],
-  })
-  @IsOptional()
-  @IsString()
-  @IsIn(['az', 'en', 'ru'])
-  lang?: 'az' | 'en' | 'ru';
-
-  @ApiPropertyOptional({
     description: 'Hazırda aktiv olan promoları filterlə',
     example: true,
   })
   @IsOptional()
-  @IsBoolean()
   @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      return value === 'true';
-    }
-    return value;
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
   })
+  @IsBoolean()
   current?: boolean;
 
   @ApiPropertyOptional({
@@ -77,10 +65,10 @@ export class PromoQueryDto {
   @ApiPropertyOptional({
     description: 'Sıralama növü',
     example: 'newest',
-    enum: ['newest', 'oldest', 'start-date-asc', 'start-date-desc', 'end-date-asc', 'end-date-desc'],
+    enum: ['newest', 'oldest', 'start-date-asc', 'start-date-desc', 'end-date-asc', 'end-date-desc', 'title-az', 'title-za'],
   })
   @IsOptional()
   @IsString()
-  @IsIn(['newest', 'oldest', 'start-date-asc', 'start-date-desc', 'end-date-asc', 'end-date-desc'])
-  sort?: 'newest' | 'oldest' | 'start-date-asc' | 'start-date-desc' | 'end-date-asc' | 'end-date-desc';
+  @IsIn(['newest', 'oldest', 'start-date-asc', 'start-date-desc', 'end-date-asc', 'end-date-desc', 'title-az', 'title-za'])
+  sort?: 'newest' | 'oldest' | 'start-date-asc' | 'start-date-desc' | 'end-date-asc' | 'end-date-desc' | 'title-az' | 'title-za';
 }

@@ -86,12 +86,6 @@ export class SectionService {
   ): Promise<any[]> {
     // Changed return type to any[] instead of Partial<Section>[]
     try {
-      console.log('findAllWithSelectedLanguage called with:', {
-        pageId,
-        type,
-        acceptLanguage,
-      });
-
       const where: any = { isActive: true };
 
       if (pageId) {
@@ -165,7 +159,6 @@ export class SectionService {
       const sections = await this.sectionRepository.find({
         order: { order: 'ASC', createdAt: 'DESC' },
       });
-      console.log(`findAllForAdmin found ${sections.length} sections`);
       return sections;
     } catch (error) {
       console.error('Error in findAllForAdmin:', error);

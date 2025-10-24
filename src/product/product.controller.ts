@@ -11,6 +11,8 @@ import {
   ParseIntPipe,
   UseInterceptors,
   UploadedFile,
+  Headers,
+  ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -75,10 +77,10 @@ export class ProductController {
     description: 'Məhsul adı və ya təsvirində axtarış',
   })
   @ApiQuery({
-    name: 'lang',
+    name: 'allLanguages',
     required: false,
-    enum: ['az', 'en', 'ru'],
-    description: 'Axtarış dili',
+    type: Boolean,
+    description: 'Admin üçün bütün dillər',
   })
   @ApiQuery({
     name: 'sort',
@@ -86,8 +88,52 @@ export class ProductController {
     enum: ['az', 'za', 'newest', 'oldest', 'most-viewed'],
     description: 'Sıralama növü',
   })
-  async findAll(@Query() query: ProductQueryDto) {
-    return await this.productService.findAll(query);
+  async findAll(
+    @Query(
+      new ValidationPipe({
+        transform: true,
+        whitelist: false,
+        skipMissingProperties: true,
+        forbidUnknownValues: false,
+      }),
+    )
+    queryDto: ProductQueryDto,
+    @Query('allLanguages') allLanguages?: boolean,
+    @Query('isActive') isActive?: boolean,
+    @Headers('accept-language') acceptLanguage?: string,
+  ) {
+    // isActive parametrini queryDto-ya əlavə et
+    if (isActive !== undefined) {
+      queryDto.isActive = isActive;
+    }
+    
+    if (allLanguages) {
+      const result = await this.productService.findAllForAdmin(queryDto);
+      return {
+        success: true,
+        data: result.data,
+        pagination: {
+          totalItems: result.pagination.totalItems,
+          totalPages: result.pagination.totalPages,
+          currentPage: result.pagination.currentPage,
+          pageSize: result.pagination.pageSize,
+        },
+        message: 'Məhsullar uğurla əldə edildi',
+      };
+    }
+
+    const result = await this.productService.findAll(queryDto, acceptLanguage);
+    return {
+      success: true,
+      data: result.data,
+      pagination: {
+        totalItems: result.pagination.totalItems,
+        totalPages: result.pagination.totalPages,
+        currentPage: result.pagination.currentPage,
+        pageSize: result.pagination.pageSize,
+      },
+      message: 'Məhsullar uğurla əldə edildi',
+    };
   }
 
   @Get(':id')
@@ -97,6 +143,12 @@ export class ProductController {
     type: 'number',
     description: 'Məhsul ID-si',
   })
+  @ApiQuery({
+    name: 'allLanguages',
+    required: false,
+    type: Boolean,
+    description: 'Admin üçün bütün dillər',
+  })
   @ApiResponse({
     status: 200,
     description: 'Məhsul obyekti',
@@ -105,8 +157,26 @@ export class ProductController {
     status: 404,
     description: 'Məhsul tapılmadı',
   })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return await this.productService.findOne(id);
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('allLanguages') allLanguages?: boolean,
+    @Headers('accept-language') acceptLanguage?: string,
+  ) {
+    if (allLanguages) {
+      const product = await this.productService.findOneForAdmin(id);
+      return {
+        success: true,
+        data: product,
+        message: 'Məhsul uğurla tapıldı',
+      };
+    }
+
+    const product = await this.productService.findOne(id, acceptLanguage);
+    return {
+      success: true,
+      data: product,
+      message: 'Məhsul uğurla tapıldı',
+    };
   }
 
   @Post()

@@ -60,30 +60,24 @@ export class PromoService {
     }
 
     // Multilingual axtarış
-    if (query.search) {
-      if (query.lang) {
-        // Müəyyən dildə axtarış
-        queryBuilder.andWhere(
-          `(promo.title ->> :lang ILIKE :search OR 
-            promo.subtitle ->> :lang ILIKE :search OR 
-            promo.description ->> :lang ILIKE :search)`,
-          { lang: query.lang, search: `%${query.search}%` }
-        );
-      } else {
-        // Bütün dillərdə axtarış
-        queryBuilder.andWhere(
-          `(promo.title ->> 'az' ILIKE :search OR 
-            promo.title ->> 'en' ILIKE :search OR 
-            promo.title ->> 'ru' ILIKE :search OR
-            promo.subtitle ->> 'az' ILIKE :search OR 
-            promo.subtitle ->> 'en' ILIKE :search OR 
-            promo.subtitle ->> 'ru' ILIKE :search OR
-            promo.description ->> 'az' ILIKE :search OR 
-            promo.description ->> 'en' ILIKE :search OR 
-            promo.description ->> 'ru' ILIKE :search)`,
-          { search: `%${query.search}%` }
-        );
-      }
+    if (query.search && query.search.trim() !== '') {
+      const searchTerm = `%${query.search.trim().toLowerCase()}%`;
+      
+      // Bütün dillərdə axtarış
+      queryBuilder.andWhere(
+        `(
+          LOWER(promo.title->>'az') LIKE LOWER(:search) OR 
+          LOWER(promo.title->>'en') LIKE LOWER(:search) OR 
+          LOWER(promo.title->>'ru') LIKE LOWER(:search) OR
+          LOWER(promo.subtitle->>'az') LIKE LOWER(:search) OR 
+          LOWER(promo.subtitle->>'en') LIKE LOWER(:search) OR 
+          LOWER(promo.subtitle->>'ru') LIKE LOWER(:search) OR
+          LOWER(promo.description->>'az') LIKE LOWER(:search) OR 
+          LOWER(promo.description->>'en') LIKE LOWER(:search) OR 
+          LOWER(promo.description->>'ru') LIKE LOWER(:search)
+        )`,
+        { search: searchTerm }
+      );
     }
 
     // Sıralama
@@ -105,6 +99,12 @@ export class PromoService {
         break;
       case 'end-date-desc':
         queryBuilder.orderBy('promo.endDate', 'DESC');
+        break;
+      case 'title-az':
+        queryBuilder.orderBy("promo.title->>'az'", 'ASC');
+        break;
+      case 'title-za':
+        queryBuilder.orderBy("promo.title->>'az'", 'DESC');
         break;
       default:
         queryBuilder.orderBy('promo.startDate', 'DESC');

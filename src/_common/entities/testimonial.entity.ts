@@ -15,4 +15,7 @@ export class Testimonial extends BaseEntity {
 
   @Column({ default: true })
   isActive: boolean;
+
+  @Column({ type: 'int', default: 5 })
+  rating: number;
 }
