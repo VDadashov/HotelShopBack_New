@@ -198,10 +198,10 @@ export class ProductService {
       ...product,
       name: this.i18n.translateField(product.name, lang),
       description: this.i18n.translateField(product.description, lang),
-      category: {
+      category: product.category ? {  // ✅ Null yoxlaması
         ...product.category,
         name: this.i18n.translateField(product.category.name, lang),
-      },
+      } : null,  // ✅ Category yoxdursa null qaytar
     };
   }
 
@@ -237,23 +237,44 @@ export class ProductService {
   }
 
   async update(id: number, updateProductDto: UpdateProductDto): Promise<Product> {
-    const product = await this.findOne(id);
+    const product = await this.productRepository.findOne({
+      where: { id },
+      relations: ['category'],
+    });
 
-    // Əgər categoryId dəyişdirilirsə, kateqoriyanın mövcudluğunu yoxla
-    if (updateProductDto.categoryId && updateProductDto.categoryId !== product.category.id) {
-      const category = await this.categoryRepository.findOne({
-        where: { id: updateProductDto.categoryId },
-      });
+    if (!product) {
+      throw new NotFoundException('Məhsul tapılmadı');
+    }
 
-      if (!category) {
-        throw new NotFoundException('Kateqoriya tapılmadı');
+    // ✅ Əgər categoryId dəyişdirilirsə
+    if (updateProductDto.categoryId !== undefined) {
+      // Mövcud category-nin id-si (null ola bilər)
+      const currentCategoryId = product.category?.id || null;
+
+      // Yalnız fərqli categoryId-dirsə yoxla
+      if (updateProductDto.categoryId !== currentCategoryId) {
+        const category = await this.categoryRepository.findOne({
+          where: { 
+            id: updateProductDto.categoryId,
+          },
+        });
+
+        if (!category) {
+          throw new NotFoundException('Kateqoriya tapılmadı və ya silinib');
+        }
+
+        product.category = category;
       }
-
-      product.category = category;
+      
+      // categoryId-ni DTO-dan sil
+      delete updateProductDto.categoryId;
     }
 
     Object.assign(product, updateProductDto);
-    return await this.productRepository.save(product);
+    const updated = await this.productRepository.save(product);
+    
+    // ✅ Formatlanmış response qaytar
+    return this.findOne(id);
   }
 
   async remove(id: number): Promise<{ message: string }> {

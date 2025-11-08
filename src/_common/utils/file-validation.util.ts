@@ -19,6 +19,6 @@ export function videoFileFilter(req, file, cb) {
   cb(null, true);
 }
 
-export const imageMaxSize = 2 * 1024 * 1024; // 2MB
+export const imageMaxSize = 5 * 1024 * 1024; // 5MB
 export const pdfMaxSize = 10 * 1024 * 1024; // 10MB 
 export const videoMaxSize = 50 * 1024 * 1024; // 50MB
