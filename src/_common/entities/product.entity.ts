@@ -16,9 +16,12 @@ export class Product extends BaseEntity {
   @Column({ nullable: true })
   mainImg: string;
 
-  @ManyToOne(() => Category, (category) => category.products, { nullable: false })
+  @ManyToOne(() => Category, (category) => category.products, { 
+    nullable: true,  
+    onDelete: 'SET NULL'
+  })
   category: Category;
 
   @Column({ default: true })
   isActive: boolean;
-} 
+}

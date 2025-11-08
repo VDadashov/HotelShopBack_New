@@ -454,21 +454,27 @@ export class CategoryService {
 
   // Kateqoriyanı silmək
   async remove(id: number): Promise<void> {
-    const category = await this.findOneForAdmin(id);
+  const category = await this.categoryRepository.findOne({
+    where: { id },
+  });
 
-    // Alt kateqoriyalar var mı yoxla
-    const childrenCount = await this.categoryRepository.count({
-      where: { parentId: id },
-    });
-
-    if (childrenCount > 0) {
-      throw new BadRequestException(
-        'Alt kateqoriyaları olan kateqoriya silinə bilməz',
-      );
-    }
-
-    await this.categoryRepository.remove(category);
+  if (!category) {
+    throw new BadRequestException('Kateqoriya tapılmadı');
   }
+
+  const childrenCount = await this.categoryRepository.count({
+    where: { parentId: id },
+  });
+
+  if (childrenCount > 0) {
+    throw new BadRequestException(
+      'Alt kateqoriyaları olan kateqoriya silinə bilməz',
+    );
+  }
+
+  // Database avtomatik məhsulların category-sini NULL edəcək
+  await this.categoryRepository.delete(id);
+}
 
   // Root kateqoriyaları əldə etmək - lang dəstəyi ilə
   async getRootCategories(lang?: string): Promise<any[]> {
