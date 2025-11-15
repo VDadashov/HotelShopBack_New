@@ -12,7 +12,6 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
-// Multilingual text DTO
 export class MultilingualTextDto {
   @ApiProperty({
     description: 'Azərbaycan dilində mətn',
@@ -22,21 +21,21 @@ export class MultilingualTextDto {
   @IsNotEmpty()
   az: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'İngilis dilində mətn',
     example: 'Electronics',
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  en: string;
+  en?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Rus dilində mətn',
     example: 'Электроника',
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  ru: string;
+  ru?: string;
 }
 
 export class CreateCategoryDto {

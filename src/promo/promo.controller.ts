@@ -3,13 +3,13 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   Query,
   UseGuards,
   ParseIntPipe,
   ValidationPipe,
+  Put,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -152,7 +152,7 @@ export class PromoController {
     return await this.promoService.create(createPromoDto);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   @ApiBearerAuth()

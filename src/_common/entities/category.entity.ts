@@ -13,7 +13,6 @@ export class Category extends BaseEntity {
   @Column({ type: 'jsonb' })
   name: { az: string; en?: string; ru?: string };
 
-  // 🔄 Şəkil silindi, əvəzində sıralama üçün index əlavə edildi
   @Column({
     type: 'int',
     nullable: false,
@@ -45,7 +44,6 @@ export class Category extends BaseEntity {
   })
   level: number;
 
-  // Self-referencing relations (parent-child)
   @ManyToOne(() => Category, (category) => category.children)
   @JoinColumn({ name: 'parentId' })
   parent: Category;

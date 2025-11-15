@@ -17,6 +17,7 @@ import { ProductModule } from './product/product.module';
 import { PromoModule } from './promo/promo.module';
 import { TestimonialModule } from './testimonial/testimonial.module';
 import { CartModule } from './cart/cart.module';
+import { ContactModule } from './contact/contact.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { CartModule } from './cart/cart.module';
     PromoModule,
     TestimonialModule,
     CartModule,
+    ContactModule
   ],
   controllers: [AppController],
   providers: [AppService],
