@@ -5,21 +5,19 @@ import { PromoService } from './promo.service';
 import { PromoController } from './promo.controller';
 import { Promo } from '../_common/entities/promo.entity';
 import { Product } from '../_common/entities/product.entity';
-import { diskStorage } from 'multer';
-import { fileNameEdit } from '../_common/utils/file-name-edit.util';
-import { imageFileFilter } from '../_common/utils/file-validation.util';
+import { UploadModule } from '../upload/upload.module';
+import { memoryStorage } from 'multer';
+import { imageFileFilter, imageMaxSize } from '../_common/utils/file-validation.util';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Promo, Product]),
+    UploadModule,
     MulterModule.register({
-      storage: diskStorage({
-        destination: './public/uploads/images',
-        filename: fileNameEdit,
-      }),
+      storage: memoryStorage(),
       fileFilter: imageFileFilter,
       limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB
+        fileSize: imageMaxSize,
       },
     }),
   ],

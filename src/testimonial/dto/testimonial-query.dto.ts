@@ -60,24 +60,24 @@ export class TestimonialQueryDto {
   sort?: 'newest' | 'oldest' | 'name-az' | 'name-za' | 'rating-high' | 'rating-low';
 
   @ApiPropertyOptional({
-    description: 'Səhifə nömrəsi (1-dən başlayır)',
+    description: 'Səhifə nömrəsi',
     example: 1,
-    minimum: 1,
+    default: 1,
   })
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
-  @Min(1)
+  @IsNumber({}, { message: 'Səhifə nömrəsi rəqəm olmalıdır' })
+  @Min(1, { message: 'Səhifə nömrəsi 1-dən kiçik ola bilməz' })
   page?: number = 1;
 
   @ApiPropertyOptional({
-    description: 'Səhifə başına elementlərin sayı',
+    description: 'Hər səhifədə element sayı',
     example: 10,
-    minimum: 1,
+    default: 10,
   })
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  limit?: number = 10;
+  @IsNumber({}, { message: 'Səhifə ölçüsü rəqəm olmalıdır' })
+  @Min(1, { message: 'Səhifə ölçüsü 1-dən kiçik ola bilməz' })
+  pageSize?: number = 10;
 }

@@ -35,11 +35,15 @@ import { Testimonial } from '../_common/entities/testimonial.entity';
 import { JwtAuthGuard } from '../_common/guards/jwt-auth.guard';
 import { RolesGuard } from '../_common/guards/roles.guard';
 import { Roles } from '../_common/decorators/roles.decorator';
+import { UploadService } from '../upload/upload.service';
 
 @ApiTags('Testimonials')
 @Controller('testimonials')
 export class TestimonialController {
-  constructor(private readonly testimonialService: TestimonialService) {}
+  constructor(
+    private readonly testimonialService: TestimonialService,
+    private readonly uploadService: UploadService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -69,7 +73,8 @@ export class TestimonialController {
     @UploadedFile() file?: Express.Multer.File,
   ): Promise<{ success: boolean; data: Testimonial; message: string }> {
     if (file) {
-      createTestimonialDto.imageUrl = `/uploads/testimonials/${file.filename}`;
+      const uploadResult = await this.uploadService.saveFile(file, 'images');
+      createTestimonialDto.imageUrl = uploadResult.media.url;
     }
     const testimonial =
       await this.testimonialService.create(createTestimonialDto);
@@ -87,7 +92,7 @@ export class TestimonialController {
       'Filtrlər və sıralama ilə testimonialların siyahısını qaytarır',
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'isActive', required: false, type: Boolean })
   @ApiQuery({
     name: 'search',
@@ -142,12 +147,7 @@ export class TestimonialController {
       return {
         success: true,
         data: result.data,
-        pagination: {
-          total: result.total,
-          page: result.page,
-          limit: result.limit,
-          totalPages: Math.ceil(result.total / result.limit),
-        },
+        pagination: result.pagination,
         message: 'Testimoniallar uğurla əldə edildi',
       };
     }
@@ -159,12 +159,7 @@ export class TestimonialController {
     return {
       success: true,
       data: result.data,
-      pagination: {
-        total: result.total,
-        page: result.page,
-        limit: result.limit,
-        totalPages: Math.ceil(result.total / result.limit),
-      },
+      pagination: result.pagination,
       message: 'Testimoniallar uğurla əldə edildi',
     };
   }

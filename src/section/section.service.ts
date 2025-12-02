@@ -53,8 +53,6 @@ export class SectionService {
 
       return savedSection;
     } catch (error) {
-      console.error('Section create error:', error);
-
       if (error instanceof NotFoundException) {
         throw error;
       }
@@ -129,7 +127,6 @@ export class SectionService {
 
       return filteredSections;
     } catch (error) {
-      console.error('Error in findAllWithSelectedLanguage:', error);
       throw error;
     }
   }
@@ -161,7 +158,6 @@ export class SectionService {
       });
       return sections;
     } catch (error) {
-      console.error('Error in findAllForAdmin:', error);
       throw error;
     }
   }

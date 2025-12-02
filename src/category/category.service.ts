@@ -207,21 +207,24 @@ export class CategoryService {
     lang?: string,
   ): Promise<{
     data: any[];
-    total: number;
-    page: number;
-    limit: number;
+    pagination: {
+      totalItems: number;
+      totalPages: number;
+      currentPage: number;
+      pageSize: number;
+    };
   }> {
     lang = lang || 'az';
     const {
       page = 1,
-      limit = 10,
+      pageSize = 10,
       isActive,
       parentId = undefined,
       level = undefined,
       search,
     } = queryDto;
 
-    const skip = (page - 1) * limit;
+    const skip = (page - 1) * pageSize;
 
     const queryBuilder = this.categoryRepository
       .createQueryBuilder('category')
@@ -264,7 +267,7 @@ export class CategoryService {
       .orderBy('category.level', 'ASC')
       .addOrderBy('category.id', 'ASC')
       .skip(skip)
-      .take(limit);
+      .take(pageSize);
 
     const [data, total] = await queryBuilder.getManyAndCount();
 
@@ -288,29 +291,35 @@ export class CategoryService {
 
     return {
       data: translatedData,
-      total,
-      page,
-      limit,
+      pagination: {
+        totalItems: total,
+        totalPages: Math.ceil(total / pageSize),
+        currentPage: page,
+        pageSize,
+      },
     };
   }
 
   // Admin üçün findAll (tərcüməsiz)
   async findAllForAdmin(queryDto: CategoryQueryDto = {}): Promise<{
     data: Category[];
-    total: number;
-    page: number;
-    limit: number;
+    pagination: {
+      totalItems: number;
+      totalPages: number;
+      currentPage: number;
+      pageSize: number;
+    };
   }> {
     const {
       page = 1,
-      limit = 10,
+      pageSize = 10,
       isActive,
       parentId = undefined,
       level = undefined,
       search,
     } = queryDto;
 
-    const skip = (page - 1) * limit;
+    const skip = (page - 1) * pageSize;
 
     const queryBuilder = this.categoryRepository
       .createQueryBuilder('category')
@@ -347,15 +356,18 @@ export class CategoryService {
       .orderBy('category.level', 'ASC')
       .addOrderBy('category.id', 'ASC')
       .skip(skip)
-      .take(limit);
+      .take(pageSize);
 
     const [data, total] = await queryBuilder.getManyAndCount();
 
     return {
       data,
-      total,
-      page,
-      limit,
+      pagination: {
+        totalItems: total,
+        totalPages: Math.ceil(total / pageSize),
+        currentPage: page,
+        pageSize,
+      },
     };
   }
 

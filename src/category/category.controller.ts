@@ -111,7 +111,7 @@ export class CategoryController {
       'Filtrlər və paginasiya ilə kateqoriyaların siyahısını qaytarır',
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'isActive', required: false, type: Boolean })
   @ApiQuery({ name: 'parentId', required: false, type: Number })
   @ApiQuery({ name: 'level', required: false, type: Number })
@@ -150,12 +150,7 @@ export class CategoryController {
       return {
         success: true,
         data: result.data,
-        pagination: {
-          total: result.total,
-          page: result.page,
-          limit: result.limit,
-          totalPages: Math.ceil(result.total / result.limit),
-        },
+        pagination: result.pagination,
         message: 'Kateqoriyalar uğurla əldə edildi',
       };
     }
@@ -164,12 +159,7 @@ export class CategoryController {
     return {
       success: true,
       data: result.data,
-      pagination: {
-        total: result.total,
-        page: result.page,
-        limit: result.limit,
-        totalPages: Math.ceil(result.total / result.limit),
-      },
+      pagination: result.pagination,
       message: 'Kateqoriyalar uğurla əldə edildi',
     };
   }

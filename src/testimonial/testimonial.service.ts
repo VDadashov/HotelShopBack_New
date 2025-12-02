@@ -61,21 +61,24 @@ export class TestimonialService {
     lang?: string,
   ): Promise<{
     data: any[];
-    total: number;
-    page: number;
-    limit: number;
+    pagination: {
+      totalItems: number;
+      totalPages: number;
+      currentPage: number;
+      pageSize: number;
+    };
   }> {
     lang = lang || 'az';
     const {
       page = 1,
-      limit = 10,
+      pageSize = 10,
       isActive,
       search,
       minRating,
       sort = 'newest',
     } = queryDto;
 
-    const skip = (page - 1) * limit;
+    const skip = (page - 1) * pageSize;
 
     const queryBuilder =
       this.testimonialRepository.createQueryBuilder('testimonial');
@@ -133,7 +136,7 @@ export class TestimonialService {
     }
 
     // Paginasiya
-    queryBuilder.skip(skip).take(limit);
+    queryBuilder.skip(skip).take(pageSize);
 
     const [data, total] = await queryBuilder.getManyAndCount();
 
@@ -146,29 +149,35 @@ export class TestimonialService {
 
     return {
       data: translatedData,
-      total,
-      page,
-      limit,
+      pagination: {
+        totalItems: total,
+        totalPages: Math.ceil(total / pageSize),
+        currentPage: page,
+        pageSize,
+      },
     };
   }
 
   // Admin üçün findAll (tərcüməsiz)
   async findAllForAdmin(queryDto: TestimonialQueryDto = {}): Promise<{
     data: Testimonial[];
-    total: number;
-    page: number;
-    limit: number;
+    pagination: {
+      totalItems: number;
+      totalPages: number;
+      currentPage: number;
+      pageSize: number;
+    };
   }> {
     const {
       page = 1,
-      limit = 10,
+      pageSize = 10,
       isActive,
       search,
       minRating,
       sort = 'newest',
     } = queryDto;
 
-    const skip = (page - 1) * limit;
+    const skip = (page - 1) * pageSize;
 
     const queryBuilder =
       this.testimonialRepository.createQueryBuilder('testimonial');
@@ -225,15 +234,18 @@ export class TestimonialService {
     }
 
     // Paginasiya
-    queryBuilder.skip(skip).take(limit);
+    queryBuilder.skip(skip).take(pageSize);
 
     const [data, total] = await queryBuilder.getManyAndCount();
 
     return {
       data,
-      total,
-      page,
-      limit,
+      pagination: {
+        totalItems: total,
+        totalPages: Math.ceil(total / pageSize),
+        currentPage: page,
+        pageSize,
+      },
     };
   }
 

@@ -31,10 +31,9 @@ export class EmailService {
     };
 
     try {
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log('Email göndərildi:', result);
+      await this.transporter.sendMail(mailOptions);
     } catch (err) {
-      console.log('Email göndərilərkən xəta:', err);
+      // Email göndərilərkən xəta
     }
   }
 
@@ -48,10 +47,9 @@ export class EmailService {
     };
 
     try {
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log('Email göndərildi:', result);
+      await this.transporter.sendMail(mailOptions);
     } catch (err) {
-      console.log('Email göndərilərkən xəta:', err);
+      // Email göndərilərkən xəta
     }
   }
 

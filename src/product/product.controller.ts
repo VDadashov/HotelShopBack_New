@@ -32,11 +32,15 @@ import { ProductQueryDto } from './dto/product-query.dto';
 import { JwtAuthGuard } from '../_common/guards/jwt-auth.guard';
 import { RolesGuard } from '../_common/guards/roles.guard';
 import { Roles } from '../_common/decorators/roles.decorator';
+import { UploadService } from '../upload/upload.service';
 
 @ApiTags('Products')
 @Controller('products')
 export class ProductController {
-  constructor(private readonly productService: ProductService) {}
+  constructor(
+    private readonly productService: ProductService,
+    private readonly uploadService: UploadService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Bütün məhsulları gətir (səhifələmə, axtarış, filter ilə)' })
@@ -234,7 +238,8 @@ export class ProductController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (file) {
-      createProductDto.mainImg = `/uploads/images/${file.filename}`;
+      const uploadResult = await this.uploadService.saveFile(file, 'images');
+      createProductDto.mainImg = uploadResult.media.url;
     }
     return await this.productService.create(createProductDto);
   }
@@ -300,7 +305,8 @@ export class ProductController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (file) {
-      updateProductDto.mainImg = `/uploads/images/${file.filename}`;
+      const uploadResult = await this.uploadService.saveFile(file, 'images');
+      updateProductDto.mainImg = uploadResult.media.url;
     }
     return await this.productService.update(id, updateProductDto);
   }

@@ -1,16 +1,29 @@
 import { IsOptional, IsNumber, IsBoolean, IsString, Min } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CategoryQueryDto {
+  @ApiPropertyOptional({
+    description: 'Səhifə nömrəsi',
+    example: 1,
+    default: 1,
+  })
   @IsOptional()
-  @IsNumber()
-  @Transform(({ value }) => parseInt(value))
-  page?: number;
+  @Type(() => Number)
+  @IsNumber({}, { message: 'Səhifə nömrəsi rəqəm olmalıdır' })
+  @Min(1, { message: 'Səhifə nömrəsi 1-dən kiçik ola bilməz' })
+  page?: number = 1;
 
+  @ApiPropertyOptional({
+    description: 'Hər səhifədə element sayı',
+    example: 10,
+    default: 10,
+  })
   @IsOptional()
-  @IsNumber()
-  @Transform(({ value }) => parseInt(value))
-  limit?: number;
+  @Type(() => Number)
+  @IsNumber({}, { message: 'Səhifə ölçüsü rəqəm olmalıdır' })
+  @Min(1, { message: 'Səhifə ölçüsü 1-dən kiçik ola bilməz' })
+  pageSize?: number = 10;
 
   @IsOptional()
   @IsBoolean()
